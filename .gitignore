@@ -1,0 +1,8 @@
+.idea
+cmake-build-debug
+build
+lib
+.kdev4
+shine.kdev4
+__pycache__/
+temp/

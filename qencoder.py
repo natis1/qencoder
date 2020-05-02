@@ -17,7 +17,6 @@ from pathlib import Path
 import os
 
 #baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
-print('__name__', __name__)
 
 class window(QMainWindow, Ui_MainWindow):
     twopassState = True
@@ -462,6 +461,8 @@ def runProcessing(dictargs, pushButton, progressBar, statusLabel):
     statusLabel.setText("Encoding complete!")
 
 if __name__ == '__main__':
+    if sys.platform.startswith('win'):
+        multiprocessing.freeze_support()
     app = QtWidgets.QApplication(sys.argv)
     window = window()
     window.show()

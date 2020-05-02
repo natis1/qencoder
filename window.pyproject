@@ -1,3 +1,3 @@
 {
-    "files": ["mainwindow.py","window.py","mainwindow.ui","pav1n.py"]
+    "files": ["window.py","pav1n.py","mainwindow.py","mainwindow.ui","enkode.py"]
 }

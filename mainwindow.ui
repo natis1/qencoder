@@ -537,7 +537,7 @@
   </action>
   <action name="actionExit">
    <property name="text">
-    <string>Exit</string>
+    <string>Quit</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>

@@ -102,7 +102,13 @@ class window(QMainWindow, Ui_MainWindow):
         self.spinBox_quality.valueChanged.connect(self.customQPreset)
         self.spinBox_audio.valueChanged.connect(self.customAPreset)
         self.checkBox_rtenc.stateChanged.connect(self.changeRTState)
+        self.actionOpen.triggered.connect(self.inputFileSelect)
+        self.actionSave.triggered.connect(self.outputFileSelect)
+        self.actionExit.triggered.connect(self.quitProgram)
         # self.speedButton.changeEvent.connect(self.setSpeed)
+
+    def quitProgram(self):
+        sys.exit(0)
 
     def changeColorspace(self, newspace):
         colorInfo = self.getColorspace(newspace)
@@ -241,16 +247,16 @@ class window(QMainWindow, Ui_MainWindow):
         return self.spinBox_quality.value()
 
     def inputFileSelect(self):
-        filename = QFileDialog.getOpenFileName()
+        filename = QFileDialog.getOpenFileName(filter = "Videos(*.mp4 *.mkv *.webm *.flv *.gif *.3gp *.wmv *.avi);;All(*)")
         self.inputPath.setText(filename[0])
         if (len(self.outputPath.text()) > 1):
             self.pushButton.setEnabled(1)
 
     def outputFileSelect(self):
-        filename = QFileDialog.getSaveFileName()
+        filename = QFileDialog.getSaveFileName(filter = "mkv and webm videos(*.mkv *.webm)")
         if (filename[0].endswith(".mkv") or filename[0].endswith(".webm")):
             self.outputPath.setText(filename[0])
-        else:
+        elif (len(filename[0]) > 0):
             self.outputPath.setText(filename[0] + ".mkv")
         if (len(self.inputPath.text()) > 1):
             self.pushButton.setEnabled(1)

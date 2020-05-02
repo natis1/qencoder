@@ -291,7 +291,7 @@ class Ui_MainWindow(object):
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+O"))
         self.actionSave.setText(_translate("MainWindow", "Save Video"))
         self.actionSave.setShortcut(_translate("MainWindow", "Ctrl+S"))
-        self.actionExit.setText(_translate("MainWindow", "Exit"))
+        self.actionExit.setText(_translate("MainWindow", "Quit"))
         self.actionExit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
 
 

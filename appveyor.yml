@@ -1,0 +1,12 @@
+version: 0.5.{build}
+image: Visual Studio 2019
+environment:
+  PYTHON: C:\Python38-x64
+install:
+- cmd: '"%PYTHON%\python.exe" -m pip install numpy opencv-python tqdm scenedetect[opencv,progress_bar] psutil pypiwin32 PyQt5 '
+- cmd: '"%PYTHON%\python.exe" -m pip install pyinstaller scipy '
+build_script:
+- cmd: '"%PYTHON%\Scripts\pyinstaller" --onefile enkode.py'
+test: off
+artifacts:
+- path: dist/enkode.exe

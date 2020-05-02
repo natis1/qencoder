@@ -45,7 +45,7 @@ class window(QMainWindow, Ui_MainWindow):
         self.audioqualitybox.addItem("Low (opus 32kbps)")
         self.audioqualitybox.addItem("Medium (opus 64kbps)")
         self.audioqualitybox.addItem("High (opus 76kbps)")
-        self.audioqualitybox.addItem("Very High (opus 96kbps)")
+        self.audioqualitybox.addItem("Unfortunate non-transparent audio contrasting the high quality of the video (opus 96kbps)")
         self.audioqualitybox.addItem("Transparent (opus 128kbps)")
         self.audioqualitybox.addItem("Placebo (opus 160kbps)")
         self.audioqualitybox.addItem("Insane (opus 256kbps)")

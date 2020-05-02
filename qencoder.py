@@ -17,6 +17,7 @@ from pathlib import Path
 import os
 
 #baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
+print('__name__', __name__)
 
 class window(QMainWindow, Ui_MainWindow):
     twopassState = True
@@ -26,86 +27,87 @@ class window(QMainWindow, Ui_MainWindow):
     runningEncode = False
 
     def __init__(self, *args, **kwargs):
-        QMainWindow.__init__(self, *args, **kwargs)
-        self.setupUi(self)
-        self.inputFileChoose.clicked.connect(self.inputFileSelect)
-        self.outputFileChoose.clicked.connect(self.outputFileSelect)
-        self.label_audio.setEnabled(0)
-        self.spinBox_quality.setValue(28)
-        enable_slot = partial(self.audioEnableState, self.checkBox_audio)
-        disable_slot = partial(self.audioDisableState, self.checkBox_audio)
-        self.checkBox_audio.stateChanged.connect(lambda x: enable_slot() if x else disable_slot())
+        if __name__ == '__main__':
+            QMainWindow.__init__(self, *args, **kwargs)
+            self.setupUi(self)
+            self.inputFileChoose.clicked.connect(self.inputFileSelect)
+            self.outputFileChoose.clicked.connect(self.outputFileSelect)
+            self.label_audio.setEnabled(0)
+            self.spinBox_quality.setValue(28)
+            enable_slot = partial(self.audioEnableState, self.checkBox_audio)
+            disable_slot = partial(self.audioDisableState, self.checkBox_audio)
+            self.checkBox_audio.stateChanged.connect(lambda x: enable_slot() if x else disable_slot())
 
-        enable_slot2 = partial(self.bitrateEnableState, self.checkBox_bitrate)
-        disable_slot2 = partial(self.bitrateDisableState, self.checkBox_bitrate)
-        self.checkBox_bitrate.stateChanged.connect(lambda x: enable_slot2() if x else disable_slot2())
+            enable_slot2 = partial(self.bitrateEnableState, self.checkBox_bitrate)
+            disable_slot2 = partial(self.bitrateDisableState, self.checkBox_bitrate)
+            self.checkBox_bitrate.stateChanged.connect(lambda x: enable_slot2() if x else disable_slot2())
 
-        self.pushButton.clicked.connect(self.encodeVideo)
-        self.audioqualitybox.addItem("Ultra Low (opus 24kbps")
-        self.audioqualitybox.addItem("Low (opus 32kbps)")
-        self.audioqualitybox.addItem("Medium (opus 64kbps)")
-        self.audioqualitybox.addItem("High (opus 76kbps)")
-        self.audioqualitybox.addItem("Very High (opus 96kbps)")
-        self.audioqualitybox.addItem("Transparent (opus 128kbps)")
-        self.audioqualitybox.addItem("Placebo (opus 160kbps)")
-        self.audioqualitybox.addItem("Insane (opus 256kbps)")
-        self.audioqualitybox.addItem("Custom")
-        self.audioqualitybox.setCurrentIndex(4)
-        self.audioqualitybox.activated[int].connect(self.changeAudioPreset)
+            self.pushButton.clicked.connect(self.encodeVideo)
+            self.audioqualitybox.addItem("Ultra Low (opus 24kbps")
+            self.audioqualitybox.addItem("Low (opus 32kbps)")
+            self.audioqualitybox.addItem("Medium (opus 64kbps)")
+            self.audioqualitybox.addItem("High (opus 76kbps)")
+            self.audioqualitybox.addItem("Very High (opus 96kbps)")
+            self.audioqualitybox.addItem("Transparent (opus 128kbps)")
+            self.audioqualitybox.addItem("Placebo (opus 160kbps)")
+            self.audioqualitybox.addItem("Insane (opus 256kbps)")
+            self.audioqualitybox.addItem("Custom")
+            self.audioqualitybox.setCurrentIndex(4)
+            self.audioqualitybox.activated[int].connect(self.changeAudioPreset)
 
-        self.comboBox_quality.addItem("Ultra low (q 40)")
-        self.comboBox_quality.addItem("Very low (q 36)")
-        self.comboBox_quality.addItem("Low (q 32)")
-        self.comboBox_quality.addItem("Medium (q 28)")
-        self.comboBox_quality.addItem("Good (q 26)")
-        self.comboBox_quality.addItem("Very Good (q 24)")
-        self.comboBox_quality.addItem("Amazing (q 20)")
-        self.comboBox_quality.addItem("Effectively Lossless (q 10)")
-        self.comboBox_quality.addItem("Lossless (q 0)")
-        self.comboBox_quality.addItem("Custom")
-        self.comboBox_quality.setCurrentIndex(3)
-        self.comboBox_quality.activated[int].connect(self.changeQPreset)
+            self.comboBox_quality.addItem("Ultra low (q 40)")
+            self.comboBox_quality.addItem("Very low (q 36)")
+            self.comboBox_quality.addItem("Low (q 32)")
+            self.comboBox_quality.addItem("Medium (q 28)")
+            self.comboBox_quality.addItem("Good (q 26)")
+            self.comboBox_quality.addItem("Very Good (q 24)")
+            self.comboBox_quality.addItem("Amazing (q 20)")
+            self.comboBox_quality.addItem("Effectively Lossless (q 10)")
+            self.comboBox_quality.addItem("Lossless (q 0)")
+            self.comboBox_quality.addItem("Custom")
+            self.comboBox_quality.setCurrentIndex(3)
+            self.comboBox_quality.activated[int].connect(self.changeQPreset)
 
-        self.presetbox.addItem("Ultra fast")  # cpu-used 8, rt
-        self.presetbox.addItem("Super fast")  # cpu-used 7, rt
-        self.presetbox.addItem("Faster")  # cpu-used 6, good
-        self.presetbox.addItem("Fast")  # cpu-used 5, good
-        self.presetbox.addItem("Medium")  # cpu-used 4, good
-        self.presetbox.addItem("Slow")  # cpu-used 3, good
-        self.presetbox.addItem("Slower")  # cpu-used 2, good
-        self.presetbox.addItem("Very slow")  # cpu-used 1, good
-        self.presetbox.addItem("Placebo")  # cpu-used 0, good
-        self.presetbox.setCurrentIndex(4)
-        self.presetbox.activated[int].connect(self.changePresetSimple)
+            self.presetbox.addItem("Ultra fast")  # cpu-used 8, rt
+            self.presetbox.addItem("Super fast")  # cpu-used 7, rt
+            self.presetbox.addItem("Faster")  # cpu-used 6, good
+            self.presetbox.addItem("Fast")  # cpu-used 5, good
+            self.presetbox.addItem("Medium")  # cpu-used 4, good
+            self.presetbox.addItem("Slow")  # cpu-used 3, good
+            self.presetbox.addItem("Slower")  # cpu-used 2, good
+            self.presetbox.addItem("Very slow")  # cpu-used 1, good
+            self.presetbox.addItem("Placebo")  # cpu-used 0, good
+            self.presetbox.setCurrentIndex(4)
+            self.presetbox.activated[int].connect(self.changePresetSimple)
 
-        self.comboBox_colorspace.addItem("Auto (recommended)")
-        self.comboBox_colorspace.addItem("bt709")
-        self.comboBox_colorspace.addItem("bt601")
-        self.comboBox_colorspace.addItem("bt2020-10b ncl")
-        self.comboBox_colorspace.addItem("bt2020-10b cl")
-        self.comboBox_colorspace.addItem("Custom")
-        self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
+            self.comboBox_colorspace.addItem("Auto (recommended)")
+            self.comboBox_colorspace.addItem("bt709")
+            self.comboBox_colorspace.addItem("bt601")
+            self.comboBox_colorspace.addItem("bt2020-10b ncl")
+            self.comboBox_colorspace.addItem("bt2020-10b cl")
+            self.comboBox_colorspace.addItem("Custom")
+            self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
 
-        self.comboBox_inputFormat.addItem("yuv420p")
-        self.comboBox_inputFormat.addItem("yuv420p10le")
-        self.comboBox_inputFormat.addItem("yuv420p12le")
-        self.comboBox_inputFormat.addItem("yuv422p")
-        self.comboBox_inputFormat.addItem("yuv422p10le")
-        self.comboBox_inputFormat.addItem("yuv422p12le")
-        self.comboBox_inputFormat.addItem("yuv444p")
-        self.comboBox_inputFormat.addItem("yuv444p10le")
-        self.comboBox_inputFormat.addItem("yuv444p12le")
+            self.comboBox_inputFormat.addItem("yuv420p")
+            self.comboBox_inputFormat.addItem("yuv420p10le")
+            self.comboBox_inputFormat.addItem("yuv420p12le")
+            self.comboBox_inputFormat.addItem("yuv422p")
+            self.comboBox_inputFormat.addItem("yuv422p10le")
+            self.comboBox_inputFormat.addItem("yuv422p12le")
+            self.comboBox_inputFormat.addItem("yuv444p")
+            self.comboBox_inputFormat.addItem("yuv444p10le")
+            self.comboBox_inputFormat.addItem("yuv444p12le")
 
-        self.audioqualitybox.setEnabled(0)
-        self.label_audioquality.setEnabled(0)
-        self.spinBox_speed.valueChanged.connect(self.changePresetAdvanced)
-        self.spinBox_quality.valueChanged.connect(self.customQPreset)
-        self.spinBox_audio.valueChanged.connect(self.customAPreset)
-        self.checkBox_rtenc.stateChanged.connect(self.changeRTState)
-        self.actionOpen.triggered.connect(self.inputFileSelect)
-        self.actionSave.triggered.connect(self.outputFileSelect)
-        self.actionExit.triggered.connect(self.quitProgram)
-        # self.speedButton.changeEvent.connect(self.setSpeed)
+            self.audioqualitybox.setEnabled(0)
+            self.label_audioquality.setEnabled(0)
+            self.spinBox_speed.valueChanged.connect(self.changePresetAdvanced)
+            self.spinBox_quality.valueChanged.connect(self.customQPreset)
+            self.spinBox_audio.valueChanged.connect(self.customAPreset)
+            self.checkBox_rtenc.stateChanged.connect(self.changeRTState)
+            self.actionOpen.triggered.connect(self.inputFileSelect)
+            self.actionSave.triggered.connect(self.outputFileSelect)
+            self.actionExit.triggered.connect(self.quitProgram)
+            # self.speedButton.changeEvent.connect(self.setSpeed)
 
     def quitProgram(self):
         sys.exit(0)

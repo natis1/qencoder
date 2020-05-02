@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.11.2, 2020-05-01T21:30:04. -->
+<!-- Written by QtCreator 4.12.0, 2020-05-02T12:50:33. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
-  <value type="QByteArray">{1fc8262a-583a-4a96-b116-a65582bb88aa}</value>
+  <value type="QByteArray">{67557455-70d3-49b9-87f8-c3ef4830eff0}</value>
  </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -55,8 +55,15 @@
  <data>
   <variable>ProjectExplorer.Project.PluginSettings</variable>
   <valuemap type="QVariantMap">
-   <valuelist type="QVariantList" key="ClangCodeModel.CustomCommandLineKey"/>
-   <value type="bool" key="ClangCodeModel.UseGlobalConfig">true</value>
+   <valuemap type="QVariantMap" key="ClangTools">
+    <value type="bool" key="ClangTools.BuildBeforeAnalysis">true</value>
+    <value type="QString" key="ClangTools.DiagnosticConfig">Builtin.DefaultTidyAndClazy</value>
+    <value type="int" key="ClangTools.ParallelJobs">4</value>
+    <valuelist type="QVariantList" key="ClangTools.SelectedDirs"/>
+    <valuelist type="QVariantList" key="ClangTools.SelectedFiles"/>
+    <valuelist type="QVariantList" key="ClangTools.SuppressedDiagnostics"/>
+    <value type="bool" key="ClangTools.UseGlobalSettings">true</value>
+   </valuemap>
   </valuemap>
  </data>
  <data>
@@ -64,7 +71,7 @@
   <valuemap type="QVariantMap">
    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Desktop</value>
    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Desktop</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">{103c5598-4747-4d00-bd66-e390e80412a2}</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">{4a05b700-8039-4307-9cb5-e67d8fc0a3d1}</value>
    <value type="int" key="ProjectExplorer.Target.ActiveBuildConfiguration">-1</value>
    <value type="int" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
@@ -77,6 +84,8 @@
      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Deploy</value>
     </valuemap>
     <value type="int" key="ProjectExplorer.BuildConfiguration.BuildStepListCount">1</value>
+    <valuemap type="QVariantMap" key="ProjectExplorer.DeployConfiguration.CustomData"/>
+    <value type="bool" key="ProjectExplorer.DeployConfiguration.CustomDataEnabled">false</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.DefaultDeployConfiguration</value>
    </valuemap>
    <value type="int" key="ProjectExplorer.Target.DeployConfigurationCount">1</value>
@@ -144,7 +153,8 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">pav1n</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/eli/Documents/projects/enkode/pav1n.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/eli/Documents/projects/enkode/pav1n.py</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Interpreter">{cede4e35-4e78-41a4-8351-a0043bb85a93}</value>
+    <value type="bool" key="PythonEditor.RunConfiguation.Buffered">false</value>
+    <value type="QString" key="PythonEditor.RunConfiguation.Interpreter">{d7fc876c-1d0e-48ce-8523-3329453c8a1b}</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/eli/Documents/projects/enkode/pav1n.py</value>
     <value type="QString" key="RunConfiguration.Arguments"></value>
     <value type="bool" key="RunConfiguration.Arguments.multi">false</value>
@@ -217,11 +227,12 @@
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">mainwindow</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/eli/Documents/projects/enkode/mainwindow.py</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/eli/Documents/projects/enkode/mainwindow.py</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">enkode</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/eli/Documents/projects/enkode/enkode.py</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/eli/Documents/projects/enkode/enkode.py</value>
+    <value type="bool" key="PythonEditor.RunConfiguation.Buffered">false</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Interpreter"></value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/eli/Documents/projects/enkode/mainwindow.py</value>
+    <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/eli/Documents/projects/enkode/enkode.py</value>
     <value type="QString" key="RunConfiguration.Arguments"></value>
     <value type="bool" key="RunConfiguration.Arguments.multi">false</value>
     <value type="QString" key="RunConfiguration.OverrideDebuggerStartup"></value>
@@ -293,11 +304,12 @@
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">enkode</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/eli/Documents/projects/enkode/enkode.py</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/eli/Documents/projects/enkode/enkode.py</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">mainwindow</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/eli/Documents/projects/enkode/mainwindow.py</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/eli/Documents/projects/enkode/mainwindow.py</value>
+    <value type="bool" key="PythonEditor.RunConfiguation.Buffered">false</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Interpreter"></value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/eli/Documents/projects/enkode/enkode.py</value>
+    <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/eli/Documents/projects/enkode/mainwindow.py</value>
     <value type="QString" key="RunConfiguration.Arguments"></value>
     <value type="bool" key="RunConfiguration.Arguments.multi">false</value>
     <value type="QString" key="RunConfiguration.OverrideDebuggerStartup"></value>

@@ -457,7 +457,7 @@ class Av1an:
             self.log(f'Concatenation failed, aborting, error: {e}\n')
             sys.exit()
 
-    def encoding_loop(self, commands, windowObj):
+    def encoding_loop(self, commands, progressBar, statusLabel):
         """Creating process pool for encoders, creating progress bar."""
         with Pool(self.d.get('workers')) as pool:
 
@@ -494,15 +494,15 @@ class Av1an:
                   f'Params: {self.d.get("video_params")}')
 
             doneFrames = initial
-            windowObj.label_status.setText("encoding... " + str(doneFrames) + "/" + str(total))
+            statusLabel.setText("encoding... " + str(doneFrames) + "/" + str(total))
             loop = pool.imap(self.encode, commands)
             self.log(f'Started encoding queue with {self.d.get("workers")} workers\n\n')
 
             try:
                 for enc_frames in loop:
                     doneFrames += enc_frames
-                    windowObj.progressBar_total.setValue(math.floor(100 * doneFrames / total))
-                    windowObj.label_status.setText("encoding... " + str(doneFrames) + "/" + str(total))
+                    progressBar.setValue(math.floor(100 * doneFrames / total))
+                    statusLabel.setText("encoding... " + str(doneFrames) + "/" + str(total))
             except Exception as e:
                 _, _, exc_tb = sys.exc_info()
                 print(f'Encoding error: {e}\nAt line {exc_tb.tb_lineno}')
@@ -527,7 +527,7 @@ class Av1an:
             # Extracting audio
             self.extract_audio(self.d.get('input_file'))
 
-    def video_encoding(self, windowObj):
+    def video_encoding(self, progressBar, statusLabel):
         """Encoding video on local machine."""
         self.setup_routine()
 
@@ -542,13 +542,13 @@ class Av1an:
         else:
             self.determine_resources()
 
-        self.encoding_loop(commands, windowObj)
+        self.encoding_loop(commands, progressBar, statusLabel)
 
         self.concatenate_video()
 
-    def main_thread(self, windowObj):
+    def main_thread(self, progressBar, statusLabel):
         """Main."""
         # Start time
         tm = time.time()
         # Parse initial arguments
-        self.video_encoding(windowObj)
+        self.video_encoding(progressBar, statusLabel)

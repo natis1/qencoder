@@ -398,20 +398,9 @@ class window(QMainWindow, Ui_MainWindow):
 
         args['video_params'] = vparams
         print(args)
-        thread = Thread(target = self.runProcessing, args = (args,))
-        thread.start()
-
-    def runProcessing(self, dictargs):
         self.runningEncode = True
-        av1an = Av1an(dictargs)
-        print(dictargs)
-        av1an.main_thread(self)
-        print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
-        self.pushButton.setEnabled(1)
-        self.pushButton.setStyleSheet("color: black; background-color: white")
-        self.pushButton.setText("Finalize")
-        self.progressBar_total.setEnabled(0)
-        self.label_status.setText("Encoding complete!")
+        thread = Thread(target = runProcessing, args = (args, self.pushButton, self.progressBar_total, self.label_status))
+        thread.start()
 
     def finalizeEncode(self):
         self.runningEncode = False
@@ -459,6 +448,16 @@ class window(QMainWindow, Ui_MainWindow):
         self.label_status.setEnabled(0) # self.setupUi(self)
         print("Enabled all buttons, returning program to normal")
 
+def runProcessing(dictargs, pushButton, progressBar, statusLabel):
+    av1an = Av1an(dictargs)
+    print(dictargs)
+    av1an.main_thread(progressBar, statusLabel)
+    print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
+    pushButton.setEnabled(1)
+    pushButton.setStyleSheet("color: black; background-color: white")
+    pushButton.setText("Finalize")
+    progressBar.setEnabled(0)
+    statusLabel.setText("Encoding complete!")
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

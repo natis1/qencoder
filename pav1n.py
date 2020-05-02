@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+import math
 import time
 import socket
 import sys
 import os
 import shutil
+import atexit
 from distutils.spawn import find_executable
 from ast import literal_eval
 from psutil import virtual_memory
@@ -13,11 +15,10 @@ from multiprocessing import Pool
 import multiprocessing
 import subprocess
 from pathlib import Path
-from typing import Optional
-
 import cv2
+import numpy as np
 import statistics
-
+from scipy import interpolate
 from scenedetect.video_manager import VideoManager
 from scenedetect.scene_manager import SceneManager
 from scenedetect.detectors import ContentDetector
@@ -26,29 +27,35 @@ from PyQt5.QtWidgets import QLabel, QProgressBar
 
 
 if sys.version_info < (3, 7):
-    print('Av1an requires at least Python 3.7 to run.')
+    print('Python 3.7+ required')
     sys.exit()
+
+if sys.platform == 'linux':
+    def restore_term():
+        os.system("stty sane")
+
+    atexit.register(restore_term)
 
 
 class Av1an:
 
-    def __init__(self, args):
-        """Av1an - Python wrapper for AV1 encoders."""
-        self.args = args
-        #self.progressBarMini = progressBarMini
-        #self.progressBarMain = progressBarMain
-        #self.progressLabel = progressLabel
-        self.scenes: Optional[Path] = None
-        self.pyscene = ''
-        self.logging = self.args.temp / 'log.log'
+    def __init__(self, argdict):
+        """Av1an - Python all-in-one toolkit for AV1, VP9, VP8 encodes."""
         self.FFMPEG = 'ffmpeg -y -hide_banner -loglevel error'
-        self.pix_format = f'-pix_fmt {self.args.pix_format}'
-        self.ffmpeg_pipe = f' {self.pix_format} -f yuv4mpegpipe - |'
+        self.d = argdict
+        if not find_executable('ffmpeg'):
+            print('No ffmpeg found')
+            sys.exit()
+
+        # Changing pixel format, bit format
+        self.d['pix_format'] = f' -strict -1 -pix_fmt {self.d.get("pix_format")}'
+
+        self.d['ffmpeg_pipe'] = f' {self.d.get("pix_format")} -f yuv4mpegpipe - |'
 
 
     def log(self, info):
         """Default logging function, write to file."""
-        with open(self.logging, 'a') as log:
+        with open(self.d.get('logging'), 'a') as log:
             log.write(time.strftime('%X') + ' ' + info)
 
     def call_cmd(self, cmd, capture_output=False):
@@ -56,27 +63,49 @@ class Av1an:
         if capture_output:
             return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
-        with open(self.logging, 'a') as log:
+        with open(self.d.get('logging'), 'a') as log:
             subprocess.run(cmd, shell=True, stdout=log, stderr=log)
 
-    def setup(self, input_file: Path):
-        """Creating temporally folders when needed."""
 
+    def determine_resources(self):
+        """Returns number of workers that machine can handle with selected encoder."""
+        cpu = os.cpu_count()
+        ram = round(virtual_memory().total / 2 ** 30)
+
+        if self.d.get('encoder') == 'aom' or self.d.get('encoder') == 'rav1e' or self.d.get('encoder') == 'vpx':
+            self.d['workers'] = round(min(cpu / 2, ram / 1.5))
+
+        elif self.d.get('encoder') == 'svt_av1':
+            self.d['workers'] = round(min(cpu, ram)) // 5
+
+        # fix if workers round up to 0
+        if self.d.get('workers') == 0:
+            self.d['workers'] = 1
+
+    def set_logging(self):
+        """Setting logging file."""
+        if self.d.get('logging'):
+            self.d['logging'] = f"{self.d.get('logging')}.log"
+        else:
+            self.d['logging'] = self.d.get('temp') / 'log.log'
+
+    def setup(self):
+        """Creating temporally folders when needed."""
         # Make temporal directories, and remove them if already presented
-        if self.args.temp.exists() and self.args.resume:
+        if self.d.get('temp').exists() and self.d.get('resume'):
             pass
         else:
-            if self.args.temp.is_dir():
-                shutil.rmtree(self.args.temp)
-            (self.args.temp / 'split').mkdir(parents=True)
-            (self.args.temp / 'encode').mkdir()
+            if self.d.get('temp').is_dir():
+                shutil.rmtree(self.d.get('temp'))
+            (self.d.get('temp') / 'split').mkdir(parents=True)
+            (self.d.get('temp') / 'encode').mkdir()
 
-        if self.logging is os.devnull:
-            self.logging = self.args.temp / 'log.log'
+        if self.d.get('logging') is os.devnull:
+            self.d['logging'] = self.d.get('temp') / 'log.log'
 
     def extract_audio(self, input_vid: Path):
         """Extracting audio from source, transcoding if needed."""
-        audio_file = self.args.temp / 'audio.mkv'
+        audio_file = self.d.get('temp') / 'audio.mkv'
         if audio_file.exists():
             self.log('Reusing Audio File\n')
             return
@@ -88,9 +117,9 @@ class Av1an:
 
         if is_audio_here:
             self.log(f'Audio processing\n'
-                     f'Params: {self.args.audio_params}\n')
+                     f'Params: {self.d.get("audio_params")}\n')
             cmd = f'{self.FFMPEG} -i "{input_vid}" -vn ' \
-                  f'{self.args.audio_params} {audio_file}'
+                  f'{self.d.get("audio_params")} {audio_file}'
             self.call_cmd(cmd)
 
     def reduce_scenes(self, scenes):
@@ -101,25 +130,31 @@ class Av1an:
         return scenes
 
     def scene_detect(self, video: Path):
-        """Running scene detection on source video for segmenting."""
-        # Skip scene detection if the user choosed to
+        """
+        Running PySceneDetect detection on source video for segmenting.
+        Optimal threshold settings 15-50
+        """
+        # Skip scene detection if the user choose to
+        if self.d.get('scenes') == '0':
+            self.log('Skipping scene detection\n')
+            return ''
 
         try:
-
-            # PySceneDetect used split video by scenes and pass it to encoder
-            # Optimal threshold settings 15-50
             video_manager = VideoManager([str(video)])
             scene_manager = SceneManager()
-            scene_manager.add_detector(ContentDetector(threshold=self.args.threshold))
+            scene_manager.add_detector(ContentDetector(threshold=self.d.get('threshold')))
             base_timecode = video_manager.get_base_timecode()
 
             # If stats file exists, load it.
-            if self.scenes and self.scenes.exists():
-                # Read stats from CSV file opened in read mode:
-                with self.scenes.open() as stats_file:
-                    stats = stats_file.read()
-                    self.log('Using Saved Scenes\n')
-                    return stats
+            scenes = self.d.get('scenes')
+            if scenes:
+                scenes = Path(scenes)
+                if scenes.exists():
+                    # Read stats from CSV file opened in read mode:
+                    with scenes.open() as stats_file:
+                        stats = stats_file.read()
+                        self.log('Using Saved Scenes\n')
+                        return stats
 
             # Work on whole video
             video_manager.set_duration()
@@ -131,17 +166,30 @@ class Av1an:
             video_manager.start()
 
             # Perform scene detection on video_manager.
-            self.log(f'Starting scene detection Threshold: {self.args.threshold}\n')
-            scene_manager.detect_scenes(frame_source=video_manager, show_progress=False)
+            self.log(f'Starting scene detection Threshold: {self.d.get("threshold")}\n')
+            scene_manager.detect_scenes(frame_source=video_manager, show_progress=True)
 
             # Obtain list of detected scenes.
             scene_list = scene_manager.get_scene_list(base_timecode)
-            # Like FrameTimecodes, each scene in the scene_list can be sorted if the
-            # list of scenes becomes unsorted.
 
             self.log(f'Found scenes: {len(scene_list)}\n')
 
-            scenes = [scene[0].get_timecode() for scene in scene_list]
+            scenes = [str(scene[0].get_frames()) for scene in scene_list]
+
+            if (self.d.get('min_splits')):
+                # Reduce scenes intelligently to match number of workers
+                workers = self.d.get('workers')
+                ideal_split_pts = [math.floor(x * video_manager.get_duration()[0].get_frames()/(workers)) for x in range(workers)]
+                print("Reducing scenes to " + str(workers) + " splits")
+                intscenes = [int(x) for x in scenes]
+                scenes = list()
+                for i in ideal_split_pts:
+                    # This will find the closest split points to the ideal ones
+                    # for perfectly segmenting the video into n pieces
+                    scenes.append(min(intscenes, key=lambda x:abs(x-i)))
+                scenes = list(set(scenes))
+                scenes.sort()
+                scenes = [str(x) for x in scenes]
 
             # Fix for windows character limit
             if sys.platform != 'linux':
@@ -149,9 +197,6 @@ class Av1an:
 
             scenes = ','.join(scenes[1:])
 
-            # We only write to the stats file if a save is required:
-            if self.scenes:
-                self.scenes.write_text(scenes)
             return scenes
 
         except Exception as e:
@@ -159,15 +204,16 @@ class Av1an:
             print(f'Error in PySceneDetect{e}\n')
             sys.exit()
 
-    def split(self, video, timecodes):
-        """Spliting video by timecodes, or just copying video."""
-        if len(timecodes) == 0:
+    def split(self, video, frames):
+        """Spliting video by frame numbers, or just copying video."""
+        if len(frames) == 0:
             self.log('Copying video for encode\n')
-            cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -c copy -avoid_negative_ts 1 {self.args.temp / "split" / "0.mkv"}'
+            cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -c copy ' \
+                  f'-avoid_negative_ts 1 {self.d.get("temp") / "split" / "0.mkv"}'
         else:
             self.log('Splitting video\n')
-            cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -f segment -segment_times {timecodes} ' \
-                  f'-c copy -avoid_negative_ts 1 {self.args.temp / "split" / "%04d.mkv"}'
+            cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -f segment -segment_frames {frames} ' \
+                  f'-c copy -avoid_negative_ts 1 {self.d.get("temp") / "split" / "%04d.mkv"}'
 
         self.call_cmd(cmd)
 
@@ -179,8 +225,15 @@ class Av1an:
         return frames
 
     def frame_check(self, source: Path, encoded: Path):
-        """Checking is source and encoded video framecounts match."""
-        status_file = Path(self.args.temp / 'done.txt')
+        """Checking is source and encoded video frame count match."""
+
+        status_file = Path(self.d.get("temp") / 'done.txt')
+
+        if self.d.get("no_check"):
+            s1 = self.frame_probe(source)
+            with status_file.open('a') as done:
+                done.write(f'({s1}, "{source.name}"), ')
+                return
 
         s1, s2 = [self.frame_probe(i) for i in (source, encoded)]
 
@@ -194,13 +247,14 @@ class Av1an:
         """Returns sorted list of all videos that need to be encoded. Big first."""
         queue = [x for x in source_path.iterdir() if x.suffix == '.mkv']
 
-        if self.args.resume:
-            done_file = self.args.temp / 'done.txt'
+        if self.d.get('resume'):
+            done_file = self.d.get('temp') / 'done.txt'
             if done_file.exists():
                 with open(done_file, 'r') as f:
                     data = [line for line in f]
-                    data = literal_eval(data[-1])
-                    queue = [x for x in queue if x.name not in [x[1] for x in data]]
+                    if len(data) > 1:
+                        data = literal_eval(data[1])
+                        queue = [x for x in queue if x.name not in [x[1] for x in data]]
 
         queue = sorted(queue, key=lambda x: -x.stat().st_size)
 
@@ -210,43 +264,64 @@ class Av1an:
 
         return queue
 
-    def aom_encode(self, file_paths):
+    def aom_vpx_encode(self, input_files):
         """AOM encoding command composition."""
+        encoder = self.d.get('encoder')
 
-        two_p_1_aom = 'aomenc -q --passes=2 --pass=1'
-        two_p_2_aom = 'aomenc  -q --passes=2 --pass=2'
+        if encoder == 'vpx':
+            enc = 'vpxenc'
+            if not self.d.get("video_params"):
+                self.d["video_params"] = '--codec=vp9 --threads=4 --cpu-used=1 --end-usage=q --cq-level=40'
 
+        if encoder == 'aom':
+            enc = 'aomenc'
+            if not self.d.get("video_params"):
+                self.d["video_params"] = '--threads=4 --cpu-used=6 --end-usage=q --cq-level=40'
 
-        pass_2_commands = [
-            (f'-i {file[0]} {self.ffmpeg_pipe}' +
-             f' {two_p_1_aom} {self.args.video_params} --fpf={file[0].with_suffix(".log")} -o {os.devnull} - ',
-             f'-i {file[0]} {self.ffmpeg_pipe}' +
-             f' {two_p_2_aom} {self.args.video_params} --fpf={file[0].with_suffix(".log")} -o {file[1].with_suffix(".ivf")} - ',
-             (file[0], file[1].with_suffix('.ivf')))
-            for file in file_paths]
-        return pass_2_commands
+        single_p = f'{enc}  -q --passes=1 '
+        two_p_1 = f'{enc} -q --passes=2 --pass=1'
+        two_p_2 = f'{enc}  -q --passes=2 --pass=2'
+
+        if self.d.get('passes') == 1:
+            pass_1_commands = [
+                (f'-i {file[0]} {self.d.get("ffmpeg_pipe")} ' +
+                 f'  {single_p} {self.d.get("video_params")} -o {file[1].with_suffix(".ivf")} - ',
+                 (file[0], file[1].with_suffix('.ivf')))
+                for file in input_files]
+            return pass_1_commands
+
+        if self.d.get('passes') == 2:
+            pass_2_commands = [
+                (f'-i {file[0]} {self.d.get("ffmpeg_pipe")}' +
+                 f' {two_p_1} {self.d.get("video_params")} --fpf={file[0].with_suffix(".log")} -o {os.devnull} - ',
+                 f'-i {file[0]} {self.d.get("ffmpeg_pipe")}' +
+                 f' {two_p_2} {self.d.get("video_params")} '
+                 f'--fpf={file[0].with_suffix(".log")} -o {file[1].with_suffix(".ivf")} - ',
+                 (file[0], file[1].with_suffix('.ivf')))
+                for file in input_files]
+            return pass_2_commands
 
     def compose_encoding_queue(self, files):
-        """Composing encoding queue with splitted videos."""
-        file_paths = [(self.args.temp / "split" / file.name,
-                       self.args.temp / "encode" / file.name,
+        """Composing encoding queue with splited videos."""
+        input_files = [(self.d.get('temp') / "split" / file.name,
+                       self.d.get('temp') / "encode" / file.name,
                        file) for file in files]
 
-        if self.args.encoder == 'aom':
-            queue = self.aom_encode(file_paths)
-
-        else:
-            print(self.args.encoder)
-            print(f'No valid encoder : "{self.args.encoder}"')
-            sys.exit()
+        queue = self.aom_vpx_encode(input_files)
 
         self.log(f'Encoding Queue Composed\n'
-                 f'Encoder: {self.args.encoder.upper()} Queue Size: {len(queue)} Passes: {self.args.passes}\n'
-                 f'Params: {self.args.video_params}\n')
+                 f'Encoder: {self.d.get("encoder").upper()} Queue Size: {len(queue)} Passes: {self.d.get("passes")}\n'
+                 f'Params: {self.d.get("video_params")}\n')
+
+        # Catch Error
+        if len(queue) == 0:
+            print('Error in making command queue')
+            sys.exit()
 
         return queue
 
-    def get_brightness(self, video):
+    @staticmethod
+    def get_brightness(video):
         """Getting average brightness value for single video."""
         brightness = []
         cap = cv2.VideoCapture(video)
@@ -272,21 +347,34 @@ class Av1an:
 
         return brig_geom
 
-    def boost(self, command: str, br_geom, new_cq=0):
-        """Based on average brightness of video decrease(boost) Quantizer value for encoding."""
+    @staticmethod
+    def man_cq(command: str, cq: int):
+        """
+        If cq == -1 returns current value of cq in command
+        Else return command with new cq value
+        """
         mt = '--cq-level='
-        cq = int(command[command.find(mt) + 11:command.find(mt) + 13])
+        if cq == -1:
+            mt = '--cq-level='
+            cq = int(command[command.find(mt) + 11:command.find(mt) + 13])
+            return cq
+        else:
+            cmd = command[:command.find(mt) + 11] + str(cq) + command[command.find(mt) + 13:]
+            return cmd
+
+    def boost(self, command: str, br_geom, new_cq=0):
+        """Based on average brightness of video decrease(boost) Quantize value for encoding."""
+        cq = self.man_cq(command, -1)
         if not new_cq:
             if br_geom < 128:
-                new_cq = cq - round((128 - br_geom) / 128 * self.args.br)
+                new_cq = cq - round((128 - br_geom) / 128 * self.d.get('br'))
 
                 # Cap on boosting
-                if new_cq < self.args.bl:
-                    new_cq = self.args.bl
+                if new_cq < self.d.get('bl'):
+                    new_cq = self.d.get('bl')
             else:
                 new_cq = cq
-        cmd = command[:command.find(mt) + 11] + \
-              str(new_cq) + command[command.find(mt) + 13:]
+        cmd = self.man_cq(command, new_cq)
 
         return cmd, new_cq
 
@@ -294,66 +382,66 @@ class Av1an:
         """Single encoder command queue and logging output."""
         # Passing encoding params to ffmpeg for encoding.
         # Replace ffmpeg with aom because ffmpeg aom doesn't work with parameters properly.
+        try:
+            st_time = time.time()
+            source, target = Path(commands[-1][0]), Path(commands[-1][1])
+            self.log(str(source))
+            self.log(str(target))
+            frame_probe_source = self.frame_probe(source)
 
-        st_time = time.time()
-        source, target = Path(commands[-1][0]), Path(commands[-1][1])
-        frame_probe_source = self.frame_probe(source)
+            if self.d.get('boost'):
+                br = self.get_brightness(source.absolute().as_posix())
 
-        if self.args.boost:
-            br = self.get_brightness(source.absolute().as_posix())
+                com0, cq = self.boost(commands[0], br)
 
-            com0, cq = self.boost(commands[0], br)
+                if self.d.get('passes') == 2:
+                    com1, _ = self.boost(commands[1], br, cq)
+                    commands = (com0, com1) + commands[2:]
+                else:
+                    commands = com0 + commands[1:]
 
-            if self.args.passes == 2:
-                com1, _ = self.boost(commands[1], br, cq)
-                commands = (com0, com1) + commands[2:]
+                boost = f'Avg brightness: {br}\nAdjusted CQ: {cq}\n'
             else:
-                commands = com0 + commands[1:]
+                boost = ''
 
-            boost = f'Avg brightness: {br}\nAdjusted CQ: {cq}\n'
-        else:
-            boost = ''
+            self.log(f'Enc:  {source.name}, {frame_probe_source} fr\n{boost}\n')
 
-        self.log(f'Enc:  {source.name}, {frame_probe_source} fr\n{boost}\n')
+            # Queue execution
+            for i in commands[:-1]:
+                self.log(rf'{self.FFMPEG} {i}')
+                cmd = rf'{self.FFMPEG} {i}'
+                self.call_cmd(cmd)
 
+            self.frame_check(source, target)
 
+            frame_probe = self.frame_probe(target)
 
-        # Queue execution
-        for i in commands[:-1]:
-            print(rf'{self.FFMPEG} {i}')
-            cmd = rf'{self.FFMPEG} {i}'
-            self.call_cmd(cmd)
+            enc_time = round(time.time() - st_time, 2)
 
-        self.frame_check(source, target)
+            self.log(f'Done: {source.name} Fr: {frame_probe}\n'
+                     f'Fps: {round(frame_probe / enc_time, 4)} Time: {enc_time} sec.\n')
+            return self.frame_probe(source)
+        except Exception as e:
+            _, _, exc_tb = sys.exc_info()
+            print(f'Error in encoding loop {e}\nAt line {exc_tb.tb_lineno}')
 
-        frame_probe = self.frame_probe(target)
-
-        enc_time = round(time.time() - st_time, 2)
-
-        self.log(f'Done: {source.name} Fr: {frame_probe}\n'
-                 f'Fps: {round(frame_probe / enc_time, 4)} Time: {enc_time} sec.\n')
-        return self.frame_probe(source)
-
-    def concatenate_video(self, progressBarMini, progressBarMain, progressLabel):
-        progressLabel.setText("Merging video...")
-        progressBarMini.setValue(0)
-        progressBarMini.setEnabled(0)
-        progressBarMain.setValue(98)
+    def concatenate_video(self):
         """With FFMPEG concatenate encoded segments into final file."""
-        with open(f'{self.args.temp / "concat"}', 'w') as f:
+        with open(f'{self.d.get("temp") / "concat" }', 'w') as f:
 
-            encode_files = sorted((self.args.temp / 'encode').iterdir())
+            encode_files = sorted((self.d.get('temp') / 'encode').iterdir())
             f.writelines(f"file '{file.absolute()}'\n" for file in encode_files)
 
         # Add the audio file if one was extracted from the input
-        audio_file = self.args.temp / "audio.mkv"
+        audio_file = self.d.get('temp') / "audio.mkv"
         if audio_file.exists():
             audio = f'-i {audio_file} -c:a copy'
         else:
             audio = ''
 
         try:
-            cmd = f'{self.FFMPEG} -f concat -safe 0 -i {self.args.temp / "concat"} {audio} -c copy -y "{self.args.output_file}"'
+            cmd = f'{self.FFMPEG} -f concat -safe 0 -i {self.d.get("temp") / "concat"} ' \
+                  f'{audio} -c copy -y "{self.d.get("output_file")}"'
             concat = self.call_cmd(cmd, capture_output=True)
             if len(concat) > 0:
                 raise Exception
@@ -361,80 +449,106 @@ class Av1an:
             self.log('Concatenated\n')
 
             # Delete temp folders
-            if not self.args.keep:
-                shutil.rmtree(self.args.temp)
+            if not self.d.get('keep'):
+                shutil.rmtree(self.d.get('temp'))
 
         except Exception as e:
-            print(f'Concatenation failed, error: {e}')
+            print(f'Concatenation failed, FFmpeg error')
             self.log(f'Concatenation failed, aborting, error: {e}\n')
             sys.exit()
 
-    def encoding_loop(self, commands, progressBarMini, progressBarMain, progressLabel):
+    def encoding_loop(self, commands, windowObj):
         """Creating process pool for encoders, creating progress bar."""
-        with Pool(self.args.workers) as pool:
+        with Pool(self.d.get('workers')) as pool:
 
-            self.args.workers = min(len(commands), self.args.workers)
-            enc_path = self.args.temp / 'split'
-            done_path = Path(self.args.temp / 'done.txt')
-            if self.args.resume and done_path.exists():
+            # Reduce if more workers than clips
+            self.d['workers'] = min(len(commands), self.d.get('workers'))
+
+            enc_path = self.d.get('temp') / 'split'
+            done_path = self.d.get('temp') / 'done.txt'
+
+            if self.d.get('resume') and done_path.exists():
 
                 self.log('Resuming...\n')
                 with open(done_path, 'r') as f:
                     lines = [line for line in f]
-                    data = literal_eval(lines[-1])
-                    total = int(lines[0])
-                    done = [x[1] for x in data]
-
-                self.log(f'Resumed with {len(done)} encoded clips done\n\n')
-
-                initial = sum([int(x[0]) for x in data])
+                    if len(lines) > 1:
+                        data = literal_eval(lines[-1])
+                        total = int(lines[0])
+                        done = len([x[1] for x in data])
+                        initial = sum([int(x[0]) for x in data])
+                    else:
+                        done = 0
+                        initial = 0
+                        total = self.frame_probe(self.d.get('input_file'))
+                self.log(f'Resumed with {done} encoded clips done\n\n')
 
             else:
                 initial = 0
-                with open(Path(self.args.temp / 'done.txt'), 'w') as f:
-                    total = self.frame_probe(self.args.file_path)
+                with open(Path(self.d.get('temp') / 'done.txt'), 'w') as f:
+                    total = self.frame_probe(self.d.get('input_file'))
                     f.write(f'{total}\n')
 
             clips = len([x for x in enc_path.iterdir() if x.suffix == ".mkv"])
-            print(f'\rQueue: {clips} Workers: {self.args.workers} Passes: {self.args.passes}\nParams: {self.args.video_params}')
+            print(f'\rQueue: {clips} Workers: {self.d.get("workers")} Passes: {self.d.get("passes")}\n'
+                  f'Params: {self.d.get("video_params")}')
 
-            #bar = tqdm(total=total, initial=initial, dynamic_ncols=True, unit="fr",
-            #           leave=False)
-            progressLabel.setText(str(initial) + "/" + str(total))
-            progressBarMini.setValue(int(100 * (initial / total)))
-            progressBarMain.setValue(10 + int(85 * (initial / total)))
-
-            loop = pool.imap_unordered(self.encode, commands)
-            self.log(f'Started encoding queue with {self.args.workers} workers\n\n')
+            doneFrames = initial
+            windowObj.label_status.setText("encoding... " + str(doneFrames) + "/" + str(total))
+            loop = pool.imap(self.encode, commands)
+            self.log(f'Started encoding queue with {self.d.get("workers")} workers\n\n')
 
             try:
                 for enc_frames in loop:
-                    progressLabel.setText(str(enc_frames) + "/" + str(total))
-                    progressBarMini.setValue(int(100 * (enc_frames / total)))
-                    progressBarMain.setValue(5 + int(90 * (enc_frames / total)))
+                    doneFrames += enc_frames
+                    windowObj.progressBar_total.setValue(math.floor(100 * doneFrames / total))
+                    windowObj.label_status.setText("encoding... " + str(doneFrames) + "/" + str(total))
             except Exception as e:
-                print(f'Encoding error: {e}')
+                _, _, exc_tb = sys.exc_info()
+                print(f'Encoding error: {e}\nAt line {exc_tb.tb_lineno}')
                 sys.exit()
 
-    def setup_routine(self, progressBarMini, progressBarMain, progressLabel):
-        """All pre encoding routine.
-        Scene detection, splitting, audio extraction"""
-        if not (self.args.resume and self.args.temp.exists()):
-            # Check validity of request and create temp folders/files
-            self.setup(self.args.file_path)
+    def setup_routine(self):
+        """
+        All pre encoding routine.
+        Scene detection, splitting, audio extraction
+        """
+        if self.d.get('resume') and (self.d.get('temp') / 'done.txt').exists():
+            self.set_logging()
 
+        else:
+            self.setup()
+            self.set_logging()
 
             # Splitting video and sorting big-first
-            progressBarMain.setValue(1)
-            progressLabel.setText("Scanning video...")
-            timestamps = self.scene_detect(self.args.file_path)
-            progressBarMain.setValue(5)
-            progressLabel.setText("Splitting video...")
-            self.split(self.args.file_path, timestamps)
-            progressBarMain.setValue(8)
+            framenums = self.scene_detect(self.d.get('input_file'))
+            self.split(self.d.get('input_file'), framenums)
 
-            progressLabel.setText("Extracting audio...")
             # Extracting audio
-            self.extract_audio(self.args.file_path)
-            progressBarMini.setEnabled(1)
-            progressBarMain.setValue(10)
+            self.extract_audio(self.d.get('input_file'))
+
+    def video_encoding(self, windowObj):
+        """Encoding video on local machine."""
+        self.setup_routine()
+
+        files = self.get_video_queue(self.d.get('temp') / 'split')
+
+        # Make encode queue
+        commands = self.compose_encoding_queue(files)
+
+        # Determine resources if workers don't set
+        if self.d.get('workers') != 0:
+            self.d['workers'] = self.d.get('workers')
+        else:
+            self.determine_resources()
+
+        self.encoding_loop(commands, windowObj)
+
+        self.concatenate_video()
+
+    def main_thread(self, windowObj):
+        """Main."""
+        # Start time
+        tm = time.time()
+        # Parse initial arguments
+        self.video_encoding(windowObj)

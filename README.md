@@ -1,15 +1,15 @@
 # Finally, a qt encoder
 
-Qencoder is the gui you never knew you needed. With the power of scene-based splitting, it's now easier than ever to encode with free codecs, vp8, vp9, and aomenc's av1.
+Qencoder is the gui you never knew you needed. With the power of scene-based splitting, it's now faster and easier than ever to encode with free codecs. Make the perfect video encodes with qencoder!
 
 ### Simple and easy to use
-[!Simple view](/screenshots/simple.png)
+![Simple view](/screenshots/simple.png)
 
 You don't need to have a deep understanding of how video works to take advantage of Qencoder. With extremely easy to use and powerful presets, qencoder is for everyone.
 
 
 ### Powerful for those who need it
-[!Advanced view](/screenshots/complex.png)
+![Advanced view](/screenshots/complex.png)
 
 Qencoder features many useful features which make it a powerful tool. With scene based splitting, qencoder is the first ever gui to take advantage of systems with hundreds of cores. By splitting at the right moments, qencoder ensures your videos do not have any overhead from unneeded keyframes.
 

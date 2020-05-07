@@ -323,7 +323,7 @@ class Ui_qencoder(object):
         self.checkBox_twopass.setText(_translate("qencoder", "Two Pass"))
         self.comboBox_encoder.setStatusTip(_translate("qencoder", "av1 is the most modern/efficient. vp9/8 have good compatibility/speed."))
         self.label_4.setStatusTip(_translate("qencoder", "av1 is the most modern/efficient. vp9/8 have good compatibility/speed."))
-        self.label_4.setText(_translate("qencoder", "Encoder"))
+        self.label_4.setText(_translate("qencoder", "Video Codec"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_simple), _translate("qencoder", "Simple Settings"))
         self.checkBox_hdr.setStatusTip(_translate("qencoder", "Use 10 bit colorspace for output video. Greatly reduces banding and improves efficiency."))
         self.checkBox_hdr.setText(_translate("qencoder", "10 bit output"))

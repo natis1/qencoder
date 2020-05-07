@@ -191,7 +191,7 @@
              <string>av1 is the most modern/efficient. vp9/8 have good compatibility/speed.</string>
             </property>
             <property name="text">
-             <string>Encoder</string>
+             <string>Video Codec</string>
             </property>
            </widget>
           </item>

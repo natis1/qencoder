@@ -50,7 +50,7 @@ class Av1an:
         # Changing pixel format, bit format
         self.d['pix_format'] = f' -strict -1 -pix_fmt {self.d.get("pix_format")}'
 
-        self.d['ffmpeg_pipe'] = f' {self.d.get("pix_format")} -f yuv4mpegpipe - |'
+        self.d['ffmpeg_pipe'] = f' {self.d.get("pix_format")} {self.d.get("ffmpeg_cmd")} -f yuv4mpegpipe - |'
 
 
     def log(self, info):

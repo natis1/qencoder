@@ -44,3 +44,7 @@ Then install ffmpeg and an up-to-date version of the aom encoder (for instance a
 Then run it with
 
 ```./qencoder.py```
+
+##### Legal note
+
+app.ico modified from Wikimedia Commons by Videoplasty.com, CC-BY-SA 4.0

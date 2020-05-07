@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>qencoder</class>
+ <widget class="QMainWindow" name="qencoder">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>774</width>
+    <width>780</width>
     <height>595</height>
    </rect>
   </property>
@@ -17,10 +17,32 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>qencoder</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_status">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>180</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="statusTip">
+       <string/>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
     <item row="1" column="0" colspan="4">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
@@ -32,11 +54,111 @@
        </attribute>
        <layout class="QGridLayout" name="gridLayout_6">
         <item row="0" column="0">
-         <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0">
+         <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0">
+          <item row="1" column="2">
+           <widget class="QLabel" name="label_preset">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>Faster presets take more space at a given quality. 'medium' is usually best.</string>
+            </property>
+            <property name="text">
+             <string>Speed Preset</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QComboBox" name="audioqualitybox">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>What bitrate should the audio be? If unsure use 96kbps.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_quality">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>The final quality of your output video. If unsure, use 26.</string>
+            </property>
+            <property name="text">
+             <string>Quality Preset</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="checkBox_audio">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>Reencode source audio as opus (otherwise will copy existing audio if any is present)</string>
+            </property>
+            <property name="text">
+             <string>Reencode Audio</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
           <item row="2" column="2">
            <widget class="QLabel" name="label_audioquality">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>What bitrate should the audio be? If unsure use 96kbps.</string>
+            </property>
             <property name="text">
              <string>Audio Quality</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QComboBox" name="comboBox_quality">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>The final quality of your output video. If unsure, use 26.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QComboBox" name="presetbox">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>Faster presets take more space at a given quality. 'medium' is usually best.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="checkBox_twopass">
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="statusTip">
+             <string>Use twopass encoding. Highly recommended when possible.</string>
+            </property>
+            <property name="text">
+             <string>Two Pass</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -56,54 +178,22 @@
             </property>
            </spacer>
           </item>
-          <item row="1" column="3">
-           <widget class="QComboBox" name="presetbox"/>
-          </item>
-          <item row="2" column="3">
-           <widget class="QComboBox" name="audioqualitybox"/>
-          </item>
-          <item row="1" column="2">
-           <widget class="QLabel" name="label_preset">
-            <property name="text">
-             <string>Speed Preset</string>
+          <item row="3" column="3">
+           <widget class="QComboBox" name="comboBox_encoder">
+            <property name="statusTip">
+             <string>av1 is the most modern/efficient. vp9/8 have good compatibility/speed.</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QCheckBox" name="checkBox_audio">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
+          <item row="3" column="2">
+           <widget class="QLabel" name="label_4">
+            <property name="statusTip">
+             <string>av1 is the most modern/efficient. vp9/8 have good compatibility/speed.</string>
             </property>
             <property name="text">
-             <string>Reencode Audio</string>
-            </property>
-            <property name="checked">
-             <bool>false</bool>
+             <string>Encoder</string>
             </property>
            </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QCheckBox" name="checkBox_twopass">
-            <property name="text">
-             <string>Two Pass</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QLabel" name="label_quality">
-            <property name="text">
-             <string>Quality Preset</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QComboBox" name="comboBox_quality"/>
           </item>
          </layout>
         </item>
@@ -131,6 +221,9 @@
          <layout class="QGridLayout" name="gridLayout">
           <item row="2" column="4">
            <widget class="QCheckBox" name="checkBox_hdr">
+            <property name="statusTip">
+             <string>Use 10 bit colorspace for output video. Greatly reduces banding and improves efficiency.</string>
+            </property>
             <property name="text">
              <string>10 bit output</string>
             </property>
@@ -138,6 +231,9 @@
           </item>
           <item row="0" column="3">
            <widget class="QLabel" name="label_audio">
+            <property name="statusTip">
+             <string>With 2 channel stereo, 96kbps is usually transparent.</string>
+            </property>
             <property name="text">
              <string>Audio Bitrate</string>
             </property>
@@ -145,6 +241,9 @@
           </item>
           <item row="4" column="4">
            <widget class="QCheckBox" name="checkBox_minsplit">
+            <property name="statusTip">
+             <string>Only split as many times as you have workers. Recommended with bitrate mode.</string>
+            </property>
             <property name="text">
              <string>Minimal splitting</string>
             </property>
@@ -152,6 +251,9 @@
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_6">
+            <property name="statusTip">
+             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+            </property>
             <property name="text">
              <string>cpu-used (speed)</string>
             </property>
@@ -159,6 +261,9 @@
           </item>
           <item row="3" column="0">
            <widget class="QLabel" name="label_jobs">
+            <property name="statusTip">
+             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
+            </property>
             <property name="text">
              <string>Jobs</string>
             </property>
@@ -166,6 +271,9 @@
           </item>
           <item row="1" column="3">
            <widget class="QLabel" name="label_boost">
+            <property name="statusTip">
+             <string>Lowers q factor of video in low luma scenes by up to amount. To disable set to 0.</string>
+            </property>
             <property name="text">
              <string>Dark Boost</string>
             </property>
@@ -173,6 +281,9 @@
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_split">
+            <property name="statusTip">
+             <string>Luma change threshold to split at. If video has too many splits, raise this.</string>
+            </property>
             <property name="text">
              <string>Split threshold</string>
             </property>
@@ -196,6 +307,9 @@
           </item>
           <item row="2" column="1">
            <widget class="QSpinBox" name="spinBox_speed">
+            <property name="statusTip">
+             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+            </property>
             <property name="maximum">
              <number>8</number>
             </property>
@@ -205,10 +319,17 @@
            </widget>
           </item>
           <item row="5" column="1">
-           <widget class="QComboBox" name="comboBox_colorspace"/>
+           <widget class="QComboBox" name="comboBox_colorspace">
+            <property name="statusTip">
+             <string>The input colordata for your video. Leave default if unsure.</string>
+            </property>
+           </widget>
           </item>
           <item row="3" column="1">
            <widget class="QSpinBox" name="spinBox_jobs">
+            <property name="statusTip">
+             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
+            </property>
             <property name="minimum">
              <number>0</number>
             </property>
@@ -237,10 +358,16 @@
               <height>0</height>
              </size>
             </property>
+            <property name="statusTip">
+             <string>Pixel format of input. Usually yuv420p (8b) or yuv420p10le (10b). If unsure leave default.</string>
+            </property>
            </widget>
           </item>
           <item row="4" column="0">
            <widget class="QLabel" name="label_inputformat">
+            <property name="statusTip">
+             <string>Pixel format of input. Usually yuv420p (8b) or yuv420p10le (10b). If unsure leave default.</string>
+            </property>
             <property name="text">
              <string>Input Format</string>
             </property>
@@ -248,6 +375,9 @@
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_q">
+            <property name="statusTip">
+             <string>Q factor: quality of video (lower numbers = more quality). Bitrate: target video kbps to use.</string>
+            </property>
             <property name="text">
              <string>Q factor</string>
             </property>
@@ -255,6 +385,9 @@
           </item>
           <item row="5" column="0">
            <widget class="QLabel" name="label_2">
+            <property name="statusTip">
+             <string>The input colordata for your video. Leave default if unsure.</string>
+            </property>
             <property name="text">
              <string>Input Colordata</string>
             </property>
@@ -262,6 +395,9 @@
           </item>
           <item row="1" column="4">
            <widget class="QSpinBox" name="spinBox_boost">
+            <property name="statusTip">
+             <string>Lowers q factor of video in low luma scenes by up to amount. To disable set to 0.</string>
+            </property>
             <property name="maximum">
              <number>50</number>
             </property>
@@ -272,6 +408,9 @@
           </item>
           <item row="3" column="4">
            <widget class="QCheckBox" name="checkBox_tempfolder">
+            <property name="statusTip">
+             <string>Do not delete temp after running an encode.</string>
+            </property>
             <property name="text">
              <string>Keep temp folder</string>
             </property>
@@ -279,6 +418,9 @@
           </item>
           <item row="4" column="3">
            <widget class="QCheckBox" name="checkBox_rtenc">
+            <property name="statusTip">
+             <string>Encode with RT preset. Not recommended for cpu-used &lt;=6.</string>
+            </property>
             <property name="text">
              <string>Realtime Encoding</string>
             </property>
@@ -286,6 +428,9 @@
           </item>
           <item row="0" column="4">
            <widget class="QSpinBox" name="spinBox_audio">
+            <property name="statusTip">
+             <string>With 2 channel stereo, 96kbps is usually transparent.</string>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -305,6 +450,9 @@
           </item>
           <item row="1" column="1">
            <widget class="QSpinBox" name="spinBox_split">
+            <property name="statusTip">
+             <string>Luma change threshold to split at. If video has too many splits, raise this.</string>
+            </property>
             <property name="minimum">
              <number>1</number>
             </property>
@@ -318,16 +466,22 @@
           </item>
           <item row="0" column="1">
            <widget class="QSpinBox" name="spinBox_quality">
+            <property name="statusTip">
+             <string>Q factor: quality of video (lower numbers = more quality). Bitrate: target video kbps to use.</string>
+            </property>
             <property name="minimum">
              <number>0</number>
             </property>
             <property name="maximum">
-             <number>50</number>
+             <number>63</number>
             </property>
            </widget>
           </item>
           <item row="3" column="3">
            <widget class="QCheckBox" name="checkBox_resume">
+            <property name="statusTip">
+             <string>If qencoder closed prematurely, resume previous encode.</string>
+            </property>
             <property name="text">
              <string>Resume Encode</string>
             </property>
@@ -335,6 +489,9 @@
           </item>
           <item row="2" column="3">
            <widget class="QCheckBox" name="checkBox_bitrate">
+            <property name="statusTip">
+             <string>Use bitrate instead of q factor. Ideal if aiming for specific filesize. Identical to q in efficiency.</string>
+            </property>
             <property name="text">
              <string>Use Bitrate</string>
             </property>
@@ -367,12 +524,99 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_custom">
+       <attribute name="title">
+        <string>Custom</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_7">
+        <item row="0" column="0" colspan="2">
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>Warning! Checking these custom boxes can override some simple/advanced settings</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="checkBox_videocmd">
+          <property name="text">
+           <string>Custom Video Cmd</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QTextEdit" name="textEdit_videocmd">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="acceptRichText">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QCheckBox" name="checkBox_audiocmd">
+          <property name="text">
+           <string>Custom Audio Cmd</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QTextEdit" name="textEdit_audiocmd">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="acceptRichText">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QCheckBox" name="checkBox_ffmpegcmd">
+          <property name="text">
+           <string>Custom FFMPEG Cmd</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QTextEdit" name="textEdit_ffmpegcmd">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="acceptRichText">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="pushButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>120</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="statusTip">
+       <string/>
+      </property>
+      <property name="text">
+       <string>Encode</string>
+      </property>
      </widget>
     </item>
     <item row="2" column="2">
      <widget class="QProgressBar" name="progressBar_total">
       <property name="enabled">
        <bool>false</bool>
+      </property>
+      <property name="statusTip">
+       <string>Progress is only updated when chunks complete.</string>
       </property>
       <property name="value">
        <number>0</number>
@@ -461,41 +705,6 @@
       </item>
      </layout>
     </item>
-    <item row="2" column="0">
-     <widget class="QLabel" name="label_status">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>180</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="3">
-     <widget class="QPushButton" name="pushButton">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>120</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Encode</string>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -503,8 +712,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>774</width>
-     <height>30</height>
+     <width>780</width>
+     <height>34</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

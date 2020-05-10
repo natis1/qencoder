@@ -762,6 +762,7 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_del.setEnabled(1)
         self.listWidget.setEnabled(1)
         self.pushButton_save.setEnabled(0)
+        self.progressBar_total.setValue(0)
         print("Enabled all buttons, returning program to normal")
 
 def runProcessing(dictargs, pushButton, progressBar, statusLabel, manyjobs):
@@ -791,9 +792,14 @@ def runProcessing(dictargs, pushButton, progressBar, statusLabel, manyjobs):
 def runProcessingMany(dictList, pushButton, progressBar, statusLabel, queueLabel):
     queueLabel.setText("Encoding video 1/" + str(len(dictList)))
     for i in range(len(dictList)):
+        progressBar.setValue(0)
         runProcessing(dictList[i], pushButton, progressBar, statusLabel, True)
         queueLabel.setText("Completed encode " + str(i + 1) + "/" + str(len(dictList)))
     queueLabel.setText("Completed video queue")
+    pushButton.setEnabled(1)
+    pushButton.setStyleSheet("color: black; background-color: white")
+    pushButton.setText("Finalize")
+    statusLabel.setText("Encoding complete!")
 
 if __name__ == '__main__':
     if sys.platform.startswith('win'):

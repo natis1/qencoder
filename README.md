@@ -19,11 +19,17 @@ It allows you to configure the colorspace of both your input and output, to ensu
 
 Finally, it supports minimal splitting, the ideal mode for 2 pass vbr encodes. This mode makes as few splits as possible, keeping them all as far apart as possible so that the bitrate stays as variable as possible.
 
+### Video queueing
+
+![Queue view](/screenshots/queue.png)
+
+qencoder is the first gui av1 encoder to support proper video queueing. Setup the perfect encode for your video and add it to a queue. Repeat for as many videos as you want to encode. When you are done, save the queue to a file for later, or run it now with the encode button. If any videos are in the queue, qencoder will encode them.
+
 ### The optimal encodes
 
 qencoder takes advantage of the most modern and advanced free formats. It defaults to av1, a video codec so efficient it can get dvd-level quality in under 700MB. It uses aomenc by default, which, with threading, is the fastest and most efficient av1 encoder.
 
-### Free videos
+### Free codecs
 
 qencoder supports free codecs that can be encoded into webm. This means your videos can be shared and played on any html5 compliant browser. It also means that you do not need to worry about licensing fees or patent violation using it.
 

@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets, uic, QtGui
 from PyQt5.QtWidgets import QInputDialog, QFileDialog, QApplication, QMainWindow, QSpinBox, QCheckBox

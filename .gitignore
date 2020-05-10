@@ -6,5 +6,6 @@ lib
 shine.kdev4
 __pycache__/
 temp/
+temp_*/
 enkode.spec
 window.pyproject.user

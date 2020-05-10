@@ -219,16 +219,6 @@
        <layout class="QGridLayout" name="gridLayout_5">
         <item row="0" column="0">
          <layout class="QGridLayout" name="gridLayout">
-          <item row="2" column="4">
-           <widget class="QCheckBox" name="checkBox_hdr">
-            <property name="statusTip">
-             <string>Use 10 bit colorspace for output video. Greatly reduces banding and improves efficiency.</string>
-            </property>
-            <property name="text">
-             <string>10 bit output</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="3">
            <widget class="QLabel" name="label_audio">
             <property name="statusTip">
@@ -236,36 +226,6 @@
             </property>
             <property name="text">
              <string>Audio Bitrate</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="4">
-           <widget class="QCheckBox" name="checkBox_minsplit">
-            <property name="statusTip">
-             <string>Only split as many times as you have workers. Recommended with bitrate mode.</string>
-            </property>
-            <property name="text">
-             <string>Minimal splitting</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_6">
-            <property name="statusTip">
-             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
-            </property>
-            <property name="text">
-             <string>cpu-used (speed)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_jobs">
-            <property name="statusTip">
-             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
-            </property>
-            <property name="text">
-             <string>Jobs</string>
             </property>
            </widget>
           </item>
@@ -305,42 +265,10 @@
             </property>
            </spacer>
           </item>
-          <item row="2" column="1">
-           <widget class="QSpinBox" name="spinBox_speed">
-            <property name="statusTip">
-             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
-            </property>
-            <property name="maximum">
-             <number>8</number>
-            </property>
-            <property name="value">
-             <number>4</number>
-            </property>
-           </widget>
-          </item>
           <item row="5" column="1">
            <widget class="QComboBox" name="comboBox_colorspace">
             <property name="statusTip">
              <string>The input colordata for your video. Leave default if unsure.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QSpinBox" name="spinBox_jobs">
-            <property name="statusTip">
-             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
-            </property>
-            <property name="minimum">
-             <number>0</number>
-            </property>
-            <property name="maximum">
-             <number>128</number>
-            </property>
-            <property name="singleStep">
-             <number>1</number>
-            </property>
-            <property name="value">
-             <number>0</number>
             </property>
            </widget>
           </item>
@@ -406,26 +334,6 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="4">
-           <widget class="QCheckBox" name="checkBox_tempfolder">
-            <property name="statusTip">
-             <string>Do not delete temp after running an encode.</string>
-            </property>
-            <property name="text">
-             <string>Keep temp folder</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="3">
-           <widget class="QCheckBox" name="checkBox_rtenc">
-            <property name="statusTip">
-             <string>Encode with RT preset. Not recommended for cpu-used &lt;=6.</string>
-            </property>
-            <property name="text">
-             <string>Realtime Encoding</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="4">
            <widget class="QSpinBox" name="spinBox_audio">
             <property name="statusTip">
@@ -477,7 +385,37 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="3">
+          <item row="6" column="0" colspan="5">
+           <widget class="QLineEdit" name="lineEdit_colordata">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="3">
+           <widget class="QCheckBox" name="checkBox_rtenc">
+            <property name="statusTip">
+             <string>Encode with RT preset. Not recommended for cpu-used &lt;=6.</string>
+            </property>
+            <property name="text">
+             <string>Realtime Encoding</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="4">
+           <widget class="QCheckBox" name="checkBox_minsplit">
+            <property name="statusTip">
+             <string>Only split as many times as you have workers. Recommended with bitrate mode.</string>
+            </property>
+            <property name="text">
+             <string>Minimal splitting</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3">
            <widget class="QCheckBox" name="checkBox_resume">
             <property name="statusTip">
              <string>If qencoder closed prematurely, resume previous encode.</string>
@@ -487,7 +425,17 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="3">
+          <item row="4" column="4">
+           <widget class="QCheckBox" name="checkBox_tempfolder">
+            <property name="statusTip">
+             <string>Do not delete temp after running an encode.</string>
+            </property>
+            <property name="text">
+             <string>Keep temp folder</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="3">
            <widget class="QCheckBox" name="checkBox_bitrate">
             <property name="statusTip">
              <string>Use bitrate instead of q factor. Ideal if aiming for specific filesize. Identical to q in efficiency.</string>
@@ -497,13 +445,88 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="0" colspan="5">
-           <widget class="QLineEdit" name="lineEdit_colordata">
-            <property name="enabled">
-             <bool>false</bool>
+          <item row="3" column="4">
+           <widget class="QCheckBox" name="checkBox_hdr">
+            <property name="statusTip">
+             <string>Use 10 bit colorspace for output video. Greatly reduces banding and improves efficiency.</string>
             </property>
             <property name="text">
-             <string/>
+             <string>10 bit output</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="spinBox_speed">
+            <property name="statusTip">
+             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+            </property>
+            <property name="maximum">
+             <number>8</number>
+            </property>
+            <property name="value">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_jobs">
+            <property name="statusTip">
+             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
+            </property>
+            <property name="text">
+             <string>Jobs</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_6">
+            <property name="statusTip">
+             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+            </property>
+            <property name="text">
+             <string>cpu-used (speed)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QSpinBox" name="spinBox_jobs">
+            <property name="statusTip">
+             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
+            </property>
+            <property name="minimum">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <number>128</number>
+            </property>
+            <property name="singleStep">
+             <number>1</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QLabel" name="label_threads">
+            <property name="statusTip">
+             <string>Fewer threads per job and more jobs is usually recommended.</string>
+            </property>
+            <property name="text">
+             <string>Threads Per Job</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="4">
+           <widget class="QSpinBox" name="spinBox_threads">
+            <property name="statusTip">
+             <string>Fewer threads per job and more jobs is usually recommended.</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>8</number>
             </property>
            </widget>
           </item>
@@ -589,6 +612,80 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_queue">
+       <attribute name="title">
+        <string>Queue</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_8">
+        <item row="0" column="3">
+         <widget class="QPushButton" name="pushButton_up">
+          <property name="text">
+           <string>↑ up</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="6">
+         <widget class="QPushButton" name="pushButton_del">
+          <property name="text">
+           <string>🗑  delete</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QPushButton" name="pushButton_save">
+          <property name="text">
+           <string>+ Save To Queue</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QPushButton" name="pushButton_down">
+          <property name="text">
+           <string>↓ down</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="label_queueprog">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="0" colspan="7">
+         <widget class="QListWidget" name="listWidget"/>
+        </item>
+        <item row="0" column="2">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
     <item row="2" column="3">
@@ -606,7 +703,7 @@
        <string/>
       </property>
       <property name="text">
-       <string>Encode</string>
+       <string>▶  Encode</string>
       </property>
      </widget>
     </item>
@@ -725,7 +822,24 @@
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuPreset">
+    <property name="title">
+     <string>Preset</string>
+    </property>
+    <addaction name="actionOpen_Preset"/>
+    <addaction name="actionSave_Preset"/>
+   </widget>
+   <widget class="QMenu" name="menuQueue">
+    <property name="title">
+     <string>Queue</string>
+    </property>
+    <addaction name="actionOpen_Queue"/>
+    <addaction name="actionSave_Queue"/>
+    <addaction name="actionSave_Queue_As"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuPreset"/>
+   <addaction name="menuQueue"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -750,6 +864,31 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionOpen_Preset">
+   <property name="text">
+    <string>Open Preset</string>
+   </property>
+  </action>
+  <action name="actionSave_Preset">
+   <property name="text">
+    <string>Save Preset</string>
+   </property>
+  </action>
+  <action name="actionOpen_Queue">
+   <property name="text">
+    <string>Open Queue</string>
+   </property>
+  </action>
+  <action name="actionSave_Queue">
+   <property name="text">
+    <string>Save Queue</string>
+   </property>
+  </action>
+  <action name="actionSave_Queue_As">
+   <property name="text">
+    <string>Save Queue As</string>
    </property>
   </action>
  </widget>

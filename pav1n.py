@@ -300,19 +300,19 @@ class Av1an:
         if self.d.get('passes') == 1:
             pass_1_commands = []
             for index in range(len(input_files)):
-                pass_1_commands.append((f'-i {input_files[index][0]} {self.d.get("ffmpeg_pipe")} ' +
-                f'  {single_p} {self.d.get("video_params")} -o {input_files[index][1].with_suffix(".ivf")} - ', index,
+                pass_1_commands.append((f'-i "{input_files[index][0]}" {self.d.get("ffmpeg_pipe")} ' +
+                f'  {single_p} {self.d.get("video_params")} -o "{input_files[index][1].with_suffix(".ivf")}" - ', index,
                 (input_files[index][0], input_files[index][1].with_suffix('.ivf'))))
             return pass_1_commands
 
         if self.d.get('passes') == 2:
             pass_2_commands = []
             for index in range(len(input_files)):
-                pass_2_commands.append((f'-i {input_files[index][0]} {self.d.get("ffmpeg_pipe")}' +
-                    f' {two_p_1} {self.d.get("video_params")} --fpf={input_files[index][0].with_suffix(".log")} -o {os.devnull} - ',
-                    f'-i {input_files[index][0]} {self.d.get("ffmpeg_pipe")}' +
+                pass_2_commands.append((f'-i "{input_files[index][0]}" {self.d.get("ffmpeg_pipe")}' +
+                    f' {two_p_1} {self.d.get("video_params")} --fpf="{input_files[index][0].with_suffix(".log")}" -o {os.devnull} - ',
+                    f'-i "{input_files[index][0]}" {self.d.get("ffmpeg_pipe")}' +
                     f' {two_p_2} {self.d.get("video_params")} ' +
-                    f'--fpf={input_files[index][0].with_suffix(".log")} -o {input_files[index][1].with_suffix(".ivf")} - ', index,
+                    f'--fpf="{input_files[index][0].with_suffix(".log")}" -o "{input_files[index][1].with_suffix(".ivf")}" - ', index,
                     (input_files[index][0], input_files[index][1].with_suffix('.ivf'))))
             return pass_2_commands
 

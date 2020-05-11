@@ -575,6 +575,7 @@ class window(QMainWindow, Ui_qencoder):
             return "-c:a copy"
 
     def setFromPresetDict(self, dict):
+        self.comboBox_encoder.setCurrentIndex(dict['enc'])
         self.audioqualitybox.setCurrentIndex(dict['aq'])
         self.presetbox.setCurrentIndex(dict['preset'])
         self.comboBox_quality.setCurrentIndex(dict['vq'])
@@ -593,7 +594,6 @@ class window(QMainWindow, Ui_qencoder):
             self.checkBox_twopass.setChecked(True)
             print ("Resetting invalid twopass and realtime state combos")
         self.checkBox_minsplit.setChecked(dict['minsplit'])
-        self.spinBox_quality.setValue(dict['qual'])
         self.spinBox_split.setValue(dict['splittr'])
         self.spinBox_speed.setValue(dict['cpuused'])
         self.spinBox_jobs.setValue(dict['jobs'])
@@ -601,7 +601,7 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_boost.setValue(dict['boost'])
         self.spinBox_threads.setValue(dict['threads'])
         self.checkBox_audio.setChecked(dict['audio'])
-        self.comboBox_encoder.setCurrentIndex(dict['enc'])
+        self.spinBox_quality.setValue(dict['qual'])
         self.checkBox_videocmd.setChecked(dict['cusvid'])
         self.checkBox_audiocmd.setChecked(dict['cusaud'])
         self.checkBox_ffmpegcmd.setChecked(dict['cusffmpeg'])

@@ -55,65 +55,15 @@ class window(QMainWindow, Ui_qencoder):
             self.checkBox_bitrate.stateChanged.connect(lambda x: enable_slot2() if x else disable_slot2())
 
             self.pushButton.clicked.connect(self.encodeVideo)
-            self.audioqualitybox.addItem("Ultra Low (opus 24kbps")
-            self.audioqualitybox.addItem("Low (opus 32kbps)")
-            self.audioqualitybox.addItem("Medium (opus 64kbps)")
-            self.audioqualitybox.addItem("High (opus 76kbps)")
-            self.audioqualitybox.addItem("Very High (opus 96kbps)")
-            self.audioqualitybox.addItem("Transparent (opus 128kbps)")
-            self.audioqualitybox.addItem("Placebo (opus 160kbps)")
-            self.audioqualitybox.addItem("Insane (opus 256kbps)")
-            self.audioqualitybox.addItem("Custom")
-            self.audioqualitybox.setCurrentIndex(4)
+            
             self.audioqualitybox.activated[int].connect(self.changeAudioPreset)
-
-            self.comboBox_quality.addItem("Ultra low (q 40)")
-            self.comboBox_quality.addItem("Very low (q 36)")
-            self.comboBox_quality.addItem("Low (q 32)")
-            self.comboBox_quality.addItem("Medium (q 28)")
-            self.comboBox_quality.addItem("Good (q 26)")
-            self.comboBox_quality.addItem("Very Good (q 24)")
-            self.comboBox_quality.addItem("Amazing (q 20)")
-            self.comboBox_quality.addItem("Effectively Lossless (q 10)")
-            self.comboBox_quality.addItem("Lossless (q 0)")
-            self.comboBox_quality.addItem("Custom")
-            self.comboBox_quality.setCurrentIndex(4)
+            
             self.comboBox_quality.activated[int].connect(self.changeQPreset)
-
-            self.presetbox.addItem("Ultra fast")  # cpu-used 8, rt
-            self.presetbox.addItem("Super fast")  # cpu-used 7, rt
-            self.presetbox.addItem("Faster")  # cpu-used 6, good
-            self.presetbox.addItem("Fast")  # cpu-used 5, good
-            self.presetbox.addItem("Medium")  # cpu-used 4, good
-            self.presetbox.addItem("Slow")  # cpu-used 3, good
-            self.presetbox.addItem("Slower")  # cpu-used 2, good
-            self.presetbox.addItem("Very slow")  # cpu-used 1, good
-            self.presetbox.addItem("Placebo")  # cpu-used 0, good
-            self.presetbox.addItem("Custom")
-            self.presetbox.setCurrentIndex(4)
+            
             self.presetbox.activated[int].connect(self.changePresetSimple)
 
-            self.comboBox_colorspace.addItem("Auto (recommended)")
-            self.comboBox_colorspace.addItem("bt709")
-            self.comboBox_colorspace.addItem("bt601")
-            self.comboBox_colorspace.addItem("bt2020-10b ncl")
-            self.comboBox_colorspace.addItem("bt2020-10b cl")
-            self.comboBox_colorspace.addItem("Custom")
             self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
 
-            self.comboBox_inputFormat.addItem("yuv420p")
-            self.comboBox_inputFormat.addItem("yuv420p10le")
-            self.comboBox_inputFormat.addItem("yuv420p12le")
-            self.comboBox_inputFormat.addItem("yuv422p")
-            self.comboBox_inputFormat.addItem("yuv422p10le")
-            self.comboBox_inputFormat.addItem("yuv422p12le")
-            self.comboBox_inputFormat.addItem("yuv444p")
-            self.comboBox_inputFormat.addItem("yuv444p10le")
-            self.comboBox_inputFormat.addItem("yuv444p12le")
-
-            self.comboBox_encoder.addItem("av1")
-            self.comboBox_encoder.addItem("vp9")
-            self.comboBox_encoder.addItem("vp8")
             self.comboBox_encoder.activated[int].connect(self.changeEncoder)
 
             self.audioqualitybox.setEnabled(0)

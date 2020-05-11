@@ -583,6 +583,15 @@ class window(QMainWindow, Ui_qencoder):
         self.checkBox_resume.setChecked(dict['resume'])
         self.checkBox_tempfolder.setChecked(dict['keeptmp'])
         self.checkBox_rtenc.setChecked(dict['rtenc'])
+        self.twopassState = dict['2p']
+        self.realtimeState = dict['rtenc']
+        self.checkBox_twopass.setChecked(dict['2p'])
+        if (self.twopassState and self.realtimeState):
+            self.twopassState = True
+            self.realtimeState = False
+            self.checkBox_rtenc.setChecked(False)
+            self.checkBox_twopass.setChecked(True)
+            print ("Resetting invalid twopass and realtime state combos")
         self.checkBox_minsplit.setChecked(dict['minsplit'])
         self.spinBox_quality.setValue(dict['qual'])
         self.spinBox_split.setValue(dict['splittr'])
@@ -591,7 +600,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_audio.setValue(dict['audiobr'])
         self.spinBox_boost.setValue(dict['boost'])
         self.spinBox_threads.setValue(dict['threads'])
-        self.checkBox_twopass.setChecked(dict['2p'])
         self.checkBox_audio.setChecked(dict['audio'])
         self.comboBox_encoder.setCurrentIndex(dict['enc'])
         self.checkBox_videocmd.setChecked(dict['cusvid'])

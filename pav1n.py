@@ -224,11 +224,11 @@ class Av1an:
         if len(frames) == 0:
             self.log('Copying video for encode\n')
             cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -c copy ' \
-                  f'-avoid_negative_ts 1 {self.d.get("temp") / "split" / "0.mkv"}'
+                  f'-avoid_negative_ts 1 "{self.d.get("temp") / "split" / "0.mkv"}"'
         else:
             self.log('Splitting video\n')
             cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -f segment -segment_frames {frames} ' \
-                  f'-c copy -avoid_negative_ts 1 {self.d.get("temp") / "split" / "%04d.mkv"}'
+                  f'-c copy -avoid_negative_ts 1 "{self.d.get("temp") / "split" / "%04d.mkv"}"'
 
         self.call_cmd(cmd)
 
@@ -468,7 +468,7 @@ class Av1an:
             audio = ''
 
         try:
-            cmd = f'{self.FFMPEG} -f concat -safe 0 -i {self.d.get("temp") / "concat"} ' \
+            cmd = f'{self.FFMPEG} -f concat -safe 0 -i "{self.d.get("temp") / "concat"}" ' \
                   f'{audio} -c copy -y "{self.d.get("output_file")}"'
             concat = self.call_cmd(cmd, capture_output=True)
             if len(concat) > 0:

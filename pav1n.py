@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import math
 import time
 import socket
@@ -11,8 +12,6 @@ from distutils.spawn import find_executable
 from ast import literal_eval
 from psutil import virtual_memory
 import argparse
-from multiprocessing import Pool
-import multiprocessing
 import subprocess
 from pathlib import Path
 import cv2
@@ -22,6 +21,12 @@ from scipy import interpolate
 from scenedetect.video_manager import VideoManager
 from scenedetect.scene_manager import SceneManager
 from scenedetect.detectors import ContentDetector
+import threading
+from threading import Timer
+from threading import Thread
+import concurrent
+from concurrent import futures
+import datetime
 
 from PyQt5.QtWidgets import QLabel, QProgressBar
 
@@ -38,6 +43,7 @@ if sys.platform == 'linux':
 
 
 class Av1an:
+    frameCounterArray = []
 
     def __init__(self, argdict):
         """Av1an - Python all-in-one toolkit for AV1, VP9, VP8 encodes."""
@@ -57,6 +63,15 @@ class Av1an:
         """Default logging function, write to file."""
         with open(self.d.get('logging'), 'a') as log:
             log.write(time.strftime('%X') + ' ' + info)
+
+    def lineByLineCmd(self, cmd):
+        popen = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+        for stderr_line in iter(popen.stderr.readline, ""):
+            yield stderr_line
+        popen.stderr.close()
+        return_code = popen.wait()
+        if return_code:
+            raise subprocess.CalledProcessError(return_code, cmd)
 
     def call_cmd(self, cmd, capture_output=False):
         """Calling system shell, if capture_output=True output string will be returned."""
@@ -278,27 +293,27 @@ class Av1an:
             if not self.d.get("video_params"):
                 self.d["video_params"] = '--threads=4 --cpu-used=6 --end-usage=q --cq-level=40'
 
-        single_p = f'{enc}  -q --passes=1 '
-        two_p_1 = f'{enc} -q --passes=2 --pass=1'
-        two_p_2 = f'{enc}  -q --passes=2 --pass=2'
+        single_p = f'{enc} --passes=1 '
+        two_p_1 = f'{enc} --passes=2 --pass=1'
+        two_p_2 = f'{enc} --passes=2 --pass=2'
 
         if self.d.get('passes') == 1:
-            pass_1_commands = [
-                (f'-i {file[0]} {self.d.get("ffmpeg_pipe")} ' +
-                 f'  {single_p} {self.d.get("video_params")} -o {file[1].with_suffix(".ivf")} - ',
-                 (file[0], file[1].with_suffix('.ivf')))
-                for file in input_files]
+            pass_1_commands = []
+            for index in range(len(input_files)):
+                pass_1_commands.append((f'-i {input_files[index][0]} {self.d.get("ffmpeg_pipe")} ' +
+                f'  {single_p} {self.d.get("video_params")} -o {input_files[index][1].with_suffix(".ivf")} - ', index,
+                (input_files[index][0], input_files[index][1].with_suffix('.ivf'))))
             return pass_1_commands
 
         if self.d.get('passes') == 2:
-            pass_2_commands = [
-                (f'-i {file[0]} {self.d.get("ffmpeg_pipe")}' +
-                 f' {two_p_1} {self.d.get("video_params")} --fpf={file[0].with_suffix(".log")} -o {os.devnull} - ',
-                 f'-i {file[0]} {self.d.get("ffmpeg_pipe")}' +
-                 f' {two_p_2} {self.d.get("video_params")} '
-                 f'--fpf={file[0].with_suffix(".log")} -o {file[1].with_suffix(".ivf")} - ',
-                 (file[0], file[1].with_suffix('.ivf')))
-                for file in input_files]
+            pass_2_commands = []
+            for index in range(len(input_files)):
+                pass_2_commands.append((f'-i {input_files[index][0]} {self.d.get("ffmpeg_pipe")}' +
+                    f' {two_p_1} {self.d.get("video_params")} --fpf={input_files[index][0].with_suffix(".log")} -o {os.devnull} - ',
+                    f'-i {input_files[index][0]} {self.d.get("ffmpeg_pipe")}' +
+                    f' {two_p_2} {self.d.get("video_params")} '
+                    f'--fpf={input_files[index][0].with_suffix(".log")} -o {input_files[index][1].with_suffix(".ivf")} - ', index,
+                    (input_files[index][0], input_files[index][1].with_suffix('.ivf'))))
             return pass_2_commands
 
     def compose_encoding_queue(self, files):
@@ -407,10 +422,22 @@ class Av1an:
             self.log(f'Enc:  {source.name}, {frame_probe_source} fr\n{boost}\n')
 
             # Queue execution
-            for i in commands[:-1]:
-                self.log(rf'{self.FFMPEG} {i}')
-                cmd = rf'{self.FFMPEG} {i}'
-                self.call_cmd(cmd)
+            frameCounterIndex = int(threading.currentThread().getName().split("_")[-1]) - 1
+            startingFramecnt = self.frameCounterArray[frameCounterIndex]
+
+            for i in range(len(commands[:-2])):
+                self.log(rf'{self.FFMPEG} {commands[i]}')
+                cmd = rf'{self.FFMPEG} {commands[i]}'
+                if (i < (len(commands[:-2]) - 1)):
+                    self.call_cmd(cmd)
+                else :
+                    regexp = re.compile("frame\s+\d+/(\d+)")
+                    for line in self.lineByLineCmd(cmd):
+                        try:
+                            framecnt = int(re.findall(regexp, str(line))[-1])
+                            Av1an.frameCounterArray[frameCounterIndex] = framecnt + startingFramecnt
+                        except:
+                            pass
 
             self.frame_check(source, target)
 
@@ -424,6 +451,7 @@ class Av1an:
         except Exception as e:
             _, _, exc_tb = sys.exc_info()
             print(f'Error in encoding loop {e}\nAt line {exc_tb.tb_lineno}')
+            return 0
 
     def concatenate_video(self):
         """With FFMPEG concatenate encoded segments into final file."""
@@ -457,56 +485,72 @@ class Av1an:
             self.log(f'Concatenation failed, aborting, error: {e}\n')
             sys.exit()
 
-    def encoding_loop(self, commands, progressBar, statusLabel):
+    runningFrameCounter = False
+    startingTime = datetime.datetime.now()
+
+    def countFrames(self, qinterface, totalFrames):
+        if (self.runningFrameCounter):
+            threading.Timer(1.0, self.countFrames, [qinterface, totalFrames]).start()
+        frameCount = 0
+        curTime = datetime.datetime.now()
+        if ((curTime - self.startingTime).total_seconds() <= 0):
+            return
+        for i in self.frameCounterArray:
+            frameCount += i
+        qinterface.updateStatusProgress.emit("FR: " + str(frameCount) + "/" + str(totalFrames) + " FPS: " + str( frameCount / ((curTime - self.startingTime).total_seconds()))[0:5],
+                                             math.floor(100 * frameCount / totalFrames))
+
+    def encoding_loop(self, commands, qinterface):
         """Creating process pool for encoders, creating progress bar."""
-        with Pool(self.d.get('workers')) as pool:
+        # Reduce if more workers than clips
+        self.d['workers'] = min(len(commands), self.d.get('workers'))
 
-            # Reduce if more workers than clips
-            self.d['workers'] = min(len(commands), self.d.get('workers'))
+        enc_path = self.d.get('temp') / 'split'
+        done_path = self.d.get('temp') / 'done.txt'
 
-            enc_path = self.d.get('temp') / 'split'
-            done_path = self.d.get('temp') / 'done.txt'
+        if self.d.get('resume') and done_path.exists():
 
-            if self.d.get('resume') and done_path.exists():
-
-                self.log('Resuming...\n')
-                with open(done_path, 'r') as f:
-                    lines = [line for line in f]
-                    if len(lines) > 1:
-                        data = literal_eval(lines[-1])
-                        total = int(lines[0])
-                        done = len([x[1] for x in data])
-                        initial = sum([int(x[0]) for x in data])
-                    else:
-                        done = 0
-                        initial = 0
-                        total = self.frame_probe(self.d.get('input_file'))
-                self.log(f'Resumed with {done} encoded clips done\n\n')
-
-            else:
-                initial = 0
-                with open(Path(self.d.get('temp') / 'done.txt'), 'w') as f:
+            self.log('Resuming...\n')
+            with open(done_path, 'r') as f:
+                lines = [line for line in f]
+                if len(lines) > 1:
+                    data = literal_eval(lines[-1])
+                    total = int(lines[0])
+                    done = len([x[1] for x in data])
+                    initial = sum([int(x[0]) for x in data])
+                else:
+                    done = 0
+                    initial = 0
                     total = self.frame_probe(self.d.get('input_file'))
-                    f.write(f'{total}\n')
+            self.log(f'Resumed with {done} encoded clips done\n\n')
 
-            clips = len([x for x in enc_path.iterdir() if x.suffix == ".mkv"])
-            print(f'\rQueue: {clips} Workers: {self.d.get("workers")} Passes: {self.d.get("passes")}\n'
-                  f'Params: {self.d.get("video_params")}')
+        else:
+            initial = 0
+            with open(Path(self.d.get('temp') / 'done.txt'), 'w') as f:
+                total = self.frame_probe(self.d.get('input_file'))
+                f.write(f'{total}\n')
 
-            doneFrames = initial
-            statusLabel.setText("encoding... " + str(doneFrames) + "/" + str(total))
-            loop = pool.imap(self.encode, commands)
-            self.log(f'Started encoding queue with {self.d.get("workers")} workers\n\n')
+        clips = len([x for x in enc_path.iterdir() if x.suffix == ".mkv"])
+        print(f'\rQueue: {clips} Workers: {self.d.get("workers")} Passes: {self.d.get("passes")}\n'
+              f'Params: {self.d.get("video_params")}')
+        doneFrames = initial
+        Av1an.frameCounterArray = [0] * self.d['workers']
+        self.runningFrameCounter = True
+        self.startingTime = datetime.datetime.now()
+        t = threading.Timer(1.0, self.countFrames, [qinterface, total])
+        t.start()
 
-            try:
-                for enc_frames in loop:
-                    doneFrames += enc_frames
-                    progressBar.setValue(math.floor(100 * doneFrames / total))
-                    statusLabel.setText("encoding... " + str(doneFrames) + "/" + str(total))
-            except Exception as e:
-                _, _, exc_tb = sys.exc_info()
-                print(f'Encoding error: {e}\nAt line {exc_tb.tb_lineno}')
-                sys.exit()
+        # We can use a with statement to ensure threads are cleaned up promptly
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.d['workers']) as executor:
+            # Start the load operations and mark each future with its URL
+            future_cmd = {executor.submit(self.encode, cmd): cmd for cmd in commands}
+            for future in concurrent.futures.as_completed(future_cmd):
+                dat = future_cmd[future]
+                try:
+                    data = future.result()
+                except Exception as exc:
+                    print(f'Encoding error: {exc}')
+                    sys.exit()
 
     def setup_routine(self):
         """
@@ -527,7 +571,7 @@ class Av1an:
             # Extracting audio
             self.extract_audio(self.d.get('input_file'))
 
-    def video_encoding(self, progressBar, statusLabel):
+    def video_encoding(self, qinterface):
         """Encoding video on local machine."""
         self.setup_routine()
 
@@ -542,13 +586,14 @@ class Av1an:
         else:
             self.determine_resources()
 
-        self.encoding_loop(commands, progressBar, statusLabel)
+        self.encoding_loop(commands, qinterface)
+        self.runningFrameCounter = False
 
         self.concatenate_video()
 
-    def main_thread(self, progressBar, statusLabel):
+    def main_thread(self, qinterface):
         """Main."""
         # Start time
         tm = time.time()
         # Parse initial arguments
-        self.video_encoding(progressBar, statusLabel)
+        self.video_encoding(qinterface)

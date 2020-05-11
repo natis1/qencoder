@@ -9,6 +9,8 @@ from mainwindow import Ui_qencoder
 
 from pav1n import Av1an
 
+import traceback
+
 import multiprocessing
 from threading import Thread
 
@@ -147,6 +149,25 @@ class window(QMainWindow, Ui_qencoder):
                 print("Possibly the first time you have run this, corrupted, or an older version")
                 print("Do not report this")
             # self.speedButton.changeEvent.connect(self.setSpeed)
+
+    def encodeFinished(self, success):
+        if success:
+            self.pushButton.setEnabled(1)
+            self.pushButton.setStyleSheet("color: black; background-color: white")
+            self.pushButton.setText("Finalize")
+            self.label_status.setText("Encoding complete!")
+        else:
+            self.pushButton.setEnabled(1)
+            self.pushButton.setStyleSheet("color: red; background-color: white")
+            self.pushButton.setText("Reset")
+            self.label_status.setText("ERR. See temp/log.log")
+
+    def updateStatusProgress(self, status, progress):
+        self.label_status.setText(status)
+        self.progressBar_total.setValue(progress)
+
+    def updateQueuedStatus(self, queueString):
+        self.label_queueprog.setText(queueString)
 
     def openPresetFrom(self):
         filename = QFileDialog.getOpenFileName(filter = "Qencoder encoder config (*.qec)")
@@ -674,25 +695,25 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_up.setEnabled(0)
         self.pushButton_down.setEnabled(0)
         self.pushButton_del.setEnabled(0)
-
-
         self.label_status.setEnabled(1) # self.setupUi(self)
         self.label_status.setText("Initializing...")
         if (len(self.encodeList) == 0):
             args = self.getArgs()
-            print(args)
-            self.runningEncode = True
-            thread = Thread(target = runProcessing, args = (args, self.pushButton, self.progressBar_total, self.label_status, False))
-            thread.start()
-        else:
-            print("Running in queued mode with a queue of length " + str(len(self.encodeList)))
-            self.runningEncode = True
-            thread = Thread(target = runProcessingMany, args = (self.encodeList, self.pushButton, self.progressBar_total, self.label_status, self.label_queueprog))
-            thread.start()
-            self.inputPath.setText("")
-            self.outputPath.setText("")
-            self.pushButton_del.setEnabled(0)
-            self.listWidget.setEnabled(0)
+            self.encodeList.append(args)
+        print("Running in queued mode with a queue of length " + str(len(self.encodeList)))
+        self.runningEncode = True
+        self.worker = EncodeWorker(self.encodeList)
+        self.workerThread = QtCore.QThread()
+        self.worker.updateQueuedStatus.connect(self.updateQueuedStatus)
+        self.worker.updateStatusProgress.connect(self.updateStatusProgress)
+        self.worker.encodeFinished.connect(self.encodeFinished)
+        self.worker.moveToThread(self.workerThread)  # Move the Worker object to the Thread object
+        self.workerThread.started.connect(self.worker.run)  # Init worker run() at startup (optional)
+        self.workerThread.start()
+        self.inputPath.setText("")
+        self.outputPath.setText("")
+        self.pushButton_del.setEnabled(0)
+        self.listWidget.setEnabled(0)
 
     def finalizeEncode(self):
         self.runningEncode = False
@@ -765,41 +786,35 @@ class window(QMainWindow, Ui_qencoder):
         self.progressBar_total.setValue(0)
         print("Enabled all buttons, returning program to normal")
 
-def runProcessing(dictargs, pushButton, progressBar, statusLabel, manyjobs):
-    progressBar.setEnabled(1)
-    av1an = Av1an(dictargs)
-    print(dictargs)
-    try:
-        av1an.main_thread(progressBar, statusLabel)
-        print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
-        if (manyjobs):
-            statusLabel.setText("Completed encoding job")  # TODO: Set status here
-        else:
-            pushButton.setEnabled(1)
-            pushButton.setStyleSheet("color: black; background-color: white")
-            pushButton.setText("Finalize")
-            statusLabel.setText("Encoding complete!")
-    except:
-        if (manyjobs):
-            statusLabel.setText("Failed encoding job")
-        else:
-            pushButton.setEnabled(1)
-            pushButton.setStyleSheet("color: red; background-color: white")
-            pushButton.setText("Reset")
-            statusLabel.setText("ERR. See temp/log.log")
-    progressBar.setEnabled(0)
+class EncodeWorker(QtCore.QObject):
+    updateStatusProgress = QtCore.pyqtSignal(str, int)
+    updateQueuedStatus = QtCore.pyqtSignal(str)
+    encodeFinished = QtCore.pyqtSignal(bool)
 
-def runProcessingMany(dictList, pushButton, progressBar, statusLabel, queueLabel):
-    queueLabel.setText("Encoding video 1/" + str(len(dictList)))
-    for i in range(len(dictList)):
-        progressBar.setValue(0)
-        runProcessing(dictList[i], pushButton, progressBar, statusLabel, True)
-        queueLabel.setText("Completed encode " + str(i + 1) + "/" + str(len(dictList)))
-    queueLabel.setText("Completed video queue")
-    pushButton.setEnabled(1)
-    pushButton.setStyleSheet("color: black; background-color: white")
-    pushButton.setText("Finalize")
-    statusLabel.setText("Encoding complete!")
+    def __init__(self, argdata):
+        super().__init__()
+        self.argdat = argdata
+
+    def runProcessing(self, dictargs):
+        av1an = Av1an(dictargs)
+        print(dictargs)
+        av1an.main_thread(self)
+        print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
+
+    def run(self):
+        self.updateQueuedStatus.emit("Encoding video 1/" + str(len(self.argdat)))
+        try:
+            for i in range(len(self.argdat)):
+                self.updateStatusProgress.emit("Processing video " + str(i + 1), 0)
+                self.runProcessing(self.argdat[i])
+                self.updateQueuedStatus.emit("Completed encode " + str(i + 1) + "/" + str(len(self.argdat)))
+            self.updateQueuedStatus.emit("Completed video queue")
+            self.encodeFinished.emit(True)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            self.encodeFinished.emit(False)
+
 
 if __name__ == '__main__':
     if sys.platform.startswith('win'):

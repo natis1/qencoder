@@ -1,4 +1,4 @@
-version: 0.5.{build}
+version: 1.1.{build}
 image: Visual Studio 2019
 environment:
   PYTHON: C:\Python38-x64

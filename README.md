@@ -27,11 +27,15 @@ qencoder is the first gui av1 encoder to support proper video queueing. Setup th
 
 ### The optimal encodes
 
-qencoder takes advantage of the most modern and advanced free formats. It defaults to av1, a video codec so efficient it can get dvd-level quality in under 700MB. It uses aomenc by default, which, with threading, is the fastest and most efficient av1 encoder.
+qencoder takes advantage of the most modern and advanced free formats. Including:
+
+aomenc's av1, a video codec so efficient it can achieve better than dvd quality in less space than a CD. Aomenc paired with a splitting tool like qencoder is the fastest and most efficient way to encode av1, better than even SVT or rav1e.
+
+Libvpx vp9/8. Video codecs which have become standard across the internet in the .webm video format, as well as commonly being used for game cutscenes.
 
 ### Free codecs
 
-qencoder supports free codecs that can be encoded into webm. This means your videos can be shared and played on any html5 compliant browser. It also means that you do not need to worry about licensing fees or patent violation using it.
+qencoder supports free codecs that can be encoded into webm. This means your videos can be shared and played on any html5 compliant browser. It also means that you do not need to worry about licensing fees or patent violation using it. Your encodes are yours, and should stay that way.
 
 ### Using qencoder
 

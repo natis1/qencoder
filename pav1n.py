@@ -399,7 +399,6 @@ class Av1an:
         # Replace ffmpeg with aom because ffmpeg aom doesn't work with parameters properly.
         try:
             st_time = time.time()
-            print(commands)
             source, target = Path(commands[-1][0]), Path(commands[-1][1])
             self.log(str(source))
             self.log(str(target))
@@ -429,7 +428,6 @@ class Av1an:
             for i in range(len(commands[:-2])):
                 self.log(rf'{self.FFMPEG} {commands[i]}')
                 cmd = rf'{self.FFMPEG} {commands[i]}'
-                print(cmd)
                 if (i < (len(commands[:-2]) - 1)):
                     self.call_cmd(cmd)
                 else :

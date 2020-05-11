@@ -76,6 +76,54 @@
             <property name="statusTip">
              <string>What bitrate should the audio be? If unsure use 96kbps.</string>
             </property>
+            <property name="currentIndex">
+             <number>4</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>Ultra Low (opus 24kbps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Low (opus 32kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Medium (opus 64kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>High (opus 76kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Very High (opus 96kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Transparent (opus 128kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Placebo (opus 160kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Insane (opus 256kbps)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Custom</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="0" column="2">
@@ -134,6 +182,59 @@
             <property name="statusTip">
              <string>The final quality of your output video. If unsure, use 26.</string>
             </property>
+            <property name="currentIndex">
+             <number>4</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>Ultra low (q 40)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Very low (q 36)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Low (q 32)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Medium (q 28)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Good (q 26)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Very Good (q 24)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Amazing (q 20)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Effectively Lossless (q 10)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Lossless (q 0)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Custom</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="1" column="3">
@@ -144,6 +245,59 @@
             <property name="statusTip">
              <string>Faster presets take more space at a given quality. 'medium' is usually best.</string>
             </property>
+            <property name="currentIndex">
+             <number>4</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>Ultra fast</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Super fast</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Faster</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Fast</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Medium</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Slow</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Slower</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Very slow</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Placebo</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Custom</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="1" column="0">
@@ -183,6 +337,21 @@
             <property name="statusTip">
              <string>av1 is the most modern/efficient. vp9/8 have good compatibility/speed.</string>
             </property>
+            <item>
+             <property name="text">
+              <string>av1</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>vp9</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>vp8</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="3" column="2">
@@ -270,6 +439,36 @@
             <property name="statusTip">
              <string>The input colordata for your video. Leave default if unsure.</string>
             </property>
+            <item>
+             <property name="text">
+              <string>Auto (recommended)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>bt709</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>bt601</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>bt2020-10b ncl</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>bt2020-10b cl</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Custom</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="4" column="1">
@@ -289,6 +488,51 @@
             <property name="statusTip">
              <string>Pixel format of input. Usually yuv420p (8b) or yuv420p10le (10b). If unsure leave default.</string>
             </property>
+            <item>
+             <property name="text">
+              <string>yuv420p</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv420p10le</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv420p12le</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv422p</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv422p10le</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv422p12le</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv444p</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv444p10le</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>yuv444p12le</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="4" column="0">
@@ -810,7 +1054,7 @@
      <x>0</x>
      <y>0</y>
      <width>780</width>
-     <height>34</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

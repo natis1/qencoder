@@ -182,7 +182,7 @@ class Av1an:
 
             # Perform scene detection on video_manager.
             self.log(f'Starting scene detection Threshold: {self.d.get("threshold")}\n')
-            scene_manager.detect_scenes(frame_source=video_manager, show_progress=True)
+            scene_manager.detect_scenes(frame_source=video_manager, show_progress=False)
 
             # Obtain list of detected scenes.
             scene_list = scene_manager.get_scene_list(base_timecode)
@@ -217,7 +217,8 @@ class Av1an:
         except Exception as e:
             self.log(f'Error in PySceneDetect: {e}\n')
             print(f'Error in PySceneDetect{e}\n')
-            sys.exit()
+            print("Not splitting video. Possibly corrupted.")
+            return []
 
     def split(self, video, frames):
         """Spliting video by frame numbers, or just copying video."""

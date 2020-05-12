@@ -1,6 +1,6 @@
-opencv_python==4.2.0.32
-scenedetect==0.5.1.1
-scipy==1.4.1
-psutil==5.7.0
-numpy==1.18.3
-PyQt5==5.14.2
+opencv_python
+scenedetect
+scipy
+psutil
+numpy
+PyQt5

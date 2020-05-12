@@ -90,6 +90,38 @@ class window(QMainWindow, Ui_qencoder):
             self.actionSave_Preset.triggered.connect(self.savePresetAs)
             self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
 
+            #this dictionary will be use to map combobox index into a values
+            self.qualitydict = {
+                0: 40,
+                1: 36,
+                2: 32,
+                3: 28,
+                4: 26,
+                5: 24,
+                6: 20,
+                7: 10,
+                8: 0
+            }
+
+            self.audiobitratedict = {
+                0: 24,
+                1: 32,
+                2: 64,
+                3: 76,
+                4: 96,
+                5: 128,
+                6: 160,
+                7: 250
+            }
+
+            self.colorspacedict = {
+                0: ["", "--color-space=unknown"],
+                1: ["--color-primaries=bt709 --transfer-characteristics=bt709 --matrix-coefficients=bt709", "--color-space=bt709"],
+                2: ["--color-primaries=bt601 --transfer-characteristics=bt601 --matrix-coefficients=bt601", "--color-space=bt601"],
+                3: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020ncl", "--color-space=bt2020"],
+                4: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020cl", "--color-space=bt2020"]
+            }
+
             try:
                 filehandler = open(self.configpath, 'rb')
                 settings = pickle.load(filehandler)
@@ -251,34 +283,18 @@ class window(QMainWindow, Ui_qencoder):
         if (self.comboBox_encoder.currentIndex() == 2):
             return -int((self.presetbox.currentIndex() - 4) * 4.125)  # Maps the presets between -16 and 16
         return 0
-
     def getColorData(self):
+        #Get indexes of current colorspace comboBox
         inputSpace = self.comboBox_colorspace.currentIndex()
+        # if colorspace index is 5 uses a custom value set by the user
         if (inputSpace == 5):
             return self.lineEdit_colordata.text()
-        if (self.comboBox_encoder.currentIndex() == 0):
-            if (inputSpace == 0):
-                return ""
-            elif (inputSpace == 1):
-                return "--color-primaries=bt709 --transfer-characteristics=bt709 --matrix-coefficients=bt709"
-            elif (inputSpace == 2):
-                return "--color-primaries=bt601 --transfer-characteristics=bt601 --matrix-coefficients=bt601"
-            elif (inputSpace == 3):
-                return "--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020ncl"
-            else:
-                return "--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020cl"
-        elif (self.comboBox_encoder.currentIndex() == 1):
-            if (inputSpace == 0):
-                return "--color-space=unknown"
-            elif (inputSpace == 1):
-                return "--color-space=bt709"
-            elif (inputSpace == 2):
-                return "--color-space=bt601"
-            elif (inputSpace == 3):
-                return "--color-space=bt2020"
-            else:
-                return "--color-space=bt2020"
-        return ""
+        #return empty string if current encoder combobox indexes is 2 
+        if (self.comboBox_encoder.currentIndex() == 2):
+            return ""
+        #else map the colorspace index into a list of av1,vp9 color space then return the appropriate string based on the encoder
+        else:
+            return self.colorspacedict[inputSpace][self.comboBox_encoder.currentIndex()]
 
     def changeEncoder(self, newencoder):
         spdpreset = self.presetbox.currentIndex()
@@ -387,44 +403,16 @@ class window(QMainWindow, Ui_qencoder):
         self.presetbox.setCurrentIndex(i)
 
     def getAudioBitrate(self, iindex):
-        if (iindex == 0):
-            return 24
-        elif (iindex == 1):
-            return 32
-        elif (iindex == 2):
-            return 64
-        elif (iindex == 3):
-            return 76
-        elif (iindex == 4):
-            return 96
-        elif (iindex == 5):
-            return 128
-        elif (iindex == 6):
-            return 160
-        elif (iindex == 7):
-            return 256
-        return self.spinBox_audio.value()
+        if (iindex < 8):
+            return self.audiobitratedic[iindex]
+        else:
+            return self.spinBox_audio.value()
 
     def getQuality(self, qval):
-        if (qval == 0):
-            return 40
-        elif (qval == 1):
-            return 36
-        elif (qval == 2):
-            return 32
-        elif (qval == 3):
-            return 28
-        elif (qval == 4):
-            return 26
-        elif (qval == 5):
-            return 24
-        elif (qval == 6):
-            return 20
-        elif (qval == 7):
-            return 10
-        elif (qval == 8):
-            return 0
-        return self.spinBox_quality.value()
+        if (qval < 9):
+            return self.qualitydict[qval]
+        else:
+            return self.spinBox_quality.value()
 
     def inputFileSelect(self):
         filename = QFileDialog.getOpenFileName(filter = "Videos(*.mp4 *.mkv *.webm *.flv *.gif *.3gp *.wmv *.avi);;All(*)")

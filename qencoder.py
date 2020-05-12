@@ -404,7 +404,7 @@ class window(QMainWindow, Ui_qencoder):
 
     def getAudioBitrate(self, iindex):
         if (iindex < 8):
-            return self.audiobitratedic[iindex]
+            return self.audiobitratedict[iindex]
         else:
             return self.spinBox_audio.value()
 

@@ -14,10 +14,10 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="qencoder",
-    version="1.1.3",
+    version="1.1.4",
     author="Eli Stone",
     author_email="eli.stonium@gmail.com",
-    description="All-in-one encode toolkit",
+    description="Qt graphical interface for encoding",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/natis1/qencoder",

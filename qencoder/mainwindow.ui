@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>780</width>
+    <width>815</width>
     <height>595</height>
    </rect>
   </property>
@@ -957,7 +957,7 @@
        <bool>false</bool>
       </property>
       <property name="statusTip">
-       <string>Progress is only updated when chunks complete.</string>
+       <string>Progress only updates during second pass</string>
       </property>
       <property name="value">
        <number>0</number>
@@ -1053,8 +1053,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>780</width>
-     <height>21</height>
+     <width>815</width>
+     <height>34</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

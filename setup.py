@@ -14,7 +14,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="qencoder",
-    version="1.1.4",
+    version="1.1.1",
     author="Eli Stone",
     author_email="eli.stonium@gmail.com",
     description="Qt graphical interface for encoding",
@@ -23,8 +23,8 @@ setuptools.setup(
     url="https://github.com/natis1/qencoder",
     packages=setuptools.find_packages('.', exclude='tests'),
     install_requires=REQUIRES,
-    py_modules=['qencoder', 'mainwindow', 'pav1n'],
-    entry_points={"console_scripts": ["qencoder=qencoder:main"]},
+    py_modules=['qenc', 'qencoder/mainwindow', 'qencoder/pav1n', 'qencoder/window'],
+    entry_points={"console_scripts": ["qencoder=qenc:main"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",

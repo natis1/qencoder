@@ -5,9 +5,9 @@ from PyQt5.QtWidgets import QInputDialog, QFileDialog, QApplication, QMainWindow
 from functools import partial
 
 import sys
-from mainwindow import Ui_qencoder
-
-from pav1n import Av1an
+import qencoder
+from qencoder.mainwindow import Ui_qencoder
+from qencoder.pav1n import Av1an
 
 import traceback
 
@@ -39,98 +39,93 @@ class window(QMainWindow, Ui_qencoder):
     configpath = os.path.join(confighome, 'qencoder.qec')
 
     def __init__(self, *args, **kwargs):
-        if __name__ == '__main__':
-            QMainWindow.__init__(self, *args, **kwargs)
-            self.setupUi(self)
-            self.inputFileChoose.clicked.connect(self.inputFileSelect)
-            self.outputFileChoose.clicked.connect(self.outputFileSelect)
-            self.label_audio.setEnabled(0)
-            self.spinBox_quality.setValue(26)
-            enable_slot = partial(self.audioEnableState, self.checkBox_audio)
-            disable_slot = partial(self.audioDisableState, self.checkBox_audio)
-            self.checkBox_audio.stateChanged.connect(lambda x: enable_slot() if x else disable_slot())
+        QMainWindow.__init__(self, *args, **kwargs)
+        self.setupUi(self)
+        self.inputFileChoose.clicked.connect(self.inputFileSelect)
+        self.outputFileChoose.clicked.connect(self.outputFileSelect)
+        self.label_audio.setEnabled(0)
+        self.spinBox_quality.setValue(26)
+        enable_slot = partial(self.audioEnableState, self.checkBox_audio)
+        disable_slot = partial(self.audioDisableState, self.checkBox_audio)
+        self.checkBox_audio.stateChanged.connect(lambda x: enable_slot() if x else disable_slot())
 
-            enable_slot2 = partial(self.bitrateEnableState, self.checkBox_bitrate)
-            disable_slot2 = partial(self.bitrateDisableState, self.checkBox_bitrate)
-            self.checkBox_bitrate.stateChanged.connect(lambda x: enable_slot2() if x else disable_slot2())
+        enable_slot2 = partial(self.bitrateEnableState, self.checkBox_bitrate)
+        disable_slot2 = partial(self.bitrateDisableState, self.checkBox_bitrate)
+        self.checkBox_bitrate.stateChanged.connect(lambda x: enable_slot2() if x else disable_slot2())
 
-            self.pushButton.clicked.connect(self.encodeVideo)
-            
-            self.audioqualitybox.activated[int].connect(self.changeAudioPreset)
-            
-            self.comboBox_quality.activated[int].connect(self.changeQPreset)
-            
-            self.presetbox.activated[int].connect(self.changePresetSimple)
+        self.pushButton.clicked.connect(self.encodeVideo)
+        self.audioqualitybox.activated[int].connect(self.changeAudioPreset)
+        self.comboBox_quality.activated[int].connect(self.changeQPreset)
+        self.presetbox.activated[int].connect(self.changePresetSimple)
+        self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
 
-            self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
+        self.comboBox_encoder.activated[int].connect(self.changeEncoder)
 
-            self.comboBox_encoder.activated[int].connect(self.changeEncoder)
+        self.audioqualitybox.setEnabled(0)
+        self.label_audioquality.setEnabled(0)
+        self.spinBox_speed.valueChanged.connect(self.changePresetAdvanced)
+        self.spinBox_quality.valueChanged.connect(self.customQPreset)
+        self.spinBox_audio.valueChanged.connect(self.customAPreset)
+        self.checkBox_rtenc.stateChanged.connect(self.changeRTState)
+        self.checkBox_videocmd.stateChanged.connect(self.customVidCmd)
+        self.checkBox_audiocmd.stateChanged.connect(self.customAudCmd)
+        self.checkBox_ffmpegcmd.stateChanged.connect(self.customFFCmd)
+        self.actionOpen.triggered.connect(self.inputFileSelect)
+        self.actionSave.triggered.connect(self.outputFileSelect)
+        self.actionExit.triggered.connect(self.quitProgram)
+        self.actionSave_Queue.triggered.connect(self.saveQueueAuto)
+        self.actionSave_Queue_As.triggered.connect(self.saveQueueTo)
+        self.actionOpen_Queue.triggered.connect(self.openQueueFrom)
+        self.pushButton_save.setEnabled(0)
+        self.pushButton_save.clicked.connect(self.saveToQueue)
+        self.tabWidget.currentChanged[int].connect(self.setCustomText)
+        self.pushButton_up.clicked.connect(self.queueMoveUp)
+        self.pushButton_down.clicked.connect(self.queueMoveDown)
+        self.pushButton_del.clicked.connect(self.removeFromQueue)
+        self.actionSave_Preset.triggered.connect(self.savePresetAs)
+        self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
 
-            self.audioqualitybox.setEnabled(0)
-            self.label_audioquality.setEnabled(0)
-            self.spinBox_speed.valueChanged.connect(self.changePresetAdvanced)
-            self.spinBox_quality.valueChanged.connect(self.customQPreset)
-            self.spinBox_audio.valueChanged.connect(self.customAPreset)
-            self.checkBox_rtenc.stateChanged.connect(self.changeRTState)
-            self.checkBox_videocmd.stateChanged.connect(self.customVidCmd)
-            self.checkBox_audiocmd.stateChanged.connect(self.customAudCmd)
-            self.checkBox_ffmpegcmd.stateChanged.connect(self.customFFCmd)
-            self.actionOpen.triggered.connect(self.inputFileSelect)
-            self.actionSave.triggered.connect(self.outputFileSelect)
-            self.actionExit.triggered.connect(self.quitProgram)
-            self.actionSave_Queue.triggered.connect(self.saveQueueAuto)
-            self.actionSave_Queue_As.triggered.connect(self.saveQueueTo)
-            self.actionOpen_Queue.triggered.connect(self.openQueueFrom)
-            self.pushButton_save.setEnabled(0)
-            self.pushButton_save.clicked.connect(self.saveToQueue)
-            self.tabWidget.currentChanged[int].connect(self.setCustomText)
-            self.pushButton_up.clicked.connect(self.queueMoveUp)
-            self.pushButton_down.clicked.connect(self.queueMoveDown)
-            self.pushButton_del.clicked.connect(self.removeFromQueue)
-            self.actionSave_Preset.triggered.connect(self.savePresetAs)
-            self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
+        #this dictionary will be use to map combobox index into a values
+        self.qualitydict = {
+            0: 40,
+            1: 36,
+            2: 32,
+            3: 28,
+            4: 26,
+            5: 24,
+            6: 20,
+            7: 10,
+            8: 0
+        }
 
-            #this dictionary will be use to map combobox index into a values
-            self.qualitydict = {
-                0: 40,
-                1: 36,
-                2: 32,
-                3: 28,
-                4: 26,
-                5: 24,
-                6: 20,
-                7: 10,
-                8: 0
-            }
+        self.audiobitratedict = {
+            0: 24,
+            1: 32,
+            2: 64,
+            3: 76,
+            4: 96,
+            5: 128,
+            6: 160,
+            7: 250
+        }
 
-            self.audiobitratedict = {
-                0: 24,
-                1: 32,
-                2: 64,
-                3: 76,
-                4: 96,
-                5: 128,
-                6: 160,
-                7: 250
-            }
+        self.colorspacedict = {
+            0: ["", "--color-space=unknown"],
+            1: ["--color-primaries=bt709 --transfer-characteristics=bt709 --matrix-coefficients=bt709", "--color-space=bt709"],
+            2: ["--color-primaries=bt601 --transfer-characteristics=bt601 --matrix-coefficients=bt601", "--color-space=bt601"],
+            3: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020ncl", "--color-space=bt2020"],
+            4: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020cl", "--color-space=bt2020"]
+        }
 
-            self.colorspacedict = {
-                0: ["", "--color-space=unknown"],
-                1: ["--color-primaries=bt709 --transfer-characteristics=bt709 --matrix-coefficients=bt709", "--color-space=bt709"],
-                2: ["--color-primaries=bt601 --transfer-characteristics=bt601 --matrix-coefficients=bt601", "--color-space=bt601"],
-                3: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020ncl", "--color-space=bt2020"],
-                4: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020cl", "--color-space=bt2020"]
-            }
-
-            try:
-                filehandler = open(self.configpath, 'rb')
-                settings = pickle.load(filehandler)
-                self.setFromPresetDict(settings)
-            except:
-                print("Unable to load existing preset at: " + str(self.configpath) + ".")
-                print("Possibly the first time you have run this, corrupted, or an older version")
-                print("Do not report this")
-            # self.speedButton.changeEvent.connect(self.setSpeed)
+        try:
+            filehandler = open(self.configpath, 'rb')
+            settings = pickle.load(filehandler)
+            self.setFromPresetDict(settings)
+        except:
+            print("Unable to load existing preset at: " + str(self.configpath) + ".")
+            print("Possibly the first time you have run this, corrupted, or an older version")
+            print("Do not report this")
+        # self.speedButton.changeEvent.connect(self.setSpeed)
 
     def encodeFinished(self, success):
         if success:
@@ -761,15 +756,3 @@ class EncodeWorker(QtCore.QObject):
             traceback.print_exc()
             self.encodeFinished.emit(False)
 
-def main():
-    global window
-    if sys.platform.startswith('win'):
-        multiprocessing.freeze_support()
-    print("Loading program... please wait!")
-    app = QtWidgets.QApplication(sys.argv)
-    window = window()
-    window.show()
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()

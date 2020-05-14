@@ -59,7 +59,7 @@ Then install the python requirements:
 
 Then run it with
 
-```./qencoder.py```
+```./qenc.py```
 
 ##### Legal note
 

@@ -182,7 +182,7 @@ class Av1an:
 
             # Perform scene detection on video_manager.
             self.log(f'Starting scene detection Threshold: {self.d.get("threshold")}\n')
-            scene_manager.detect_scenes(frame_source=video_manager, show_progress=False)
+            scene_manager.detect_scenes(frame_source=video_manager, show_progress=sys.stdin.isatty())
 
             # Obtain list of detected scenes.
             scene_list = scene_manager.get_scene_list(base_timecode)

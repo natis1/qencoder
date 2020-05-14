@@ -9,3 +9,5 @@ temp/
 temp_*/
 enkode.spec
 window.pyproject.user
+dist/
+qencoder.egg-info/

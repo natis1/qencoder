@@ -761,8 +761,8 @@ class EncodeWorker(QtCore.QObject):
             traceback.print_exc()
             self.encodeFinished.emit(False)
 
-
-if __name__ == '__main__':
+def main():
+    global window
     if sys.platform.startswith('win'):
         multiprocessing.freeze_support()
     print("Loading program... please wait!")
@@ -770,3 +770,6 @@ if __name__ == '__main__':
     window = window()
     window.show()
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()

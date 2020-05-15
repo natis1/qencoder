@@ -6,7 +6,7 @@ install:
 - cmd: '"%PYTHON%\python.exe" -m pip install numpy opencv-python tqdm scenedetect[opencv,progress_bar] psutil pypiwin32 PyQt5 '
 - cmd: '"%PYTHON%\python.exe" -m pip install pyinstaller scipy '
 build_script:
-- cmd: '"%PYTHON%\Scripts\pyinstaller" --onefile qencoder.py --icon=app.ico'
+- cmd: '"%PYTHON%\Scripts\pyinstaller" --onefile qenc.py --icon=app.ico'
 test: off
 artifacts:
 - path: dist/qencoder.exe

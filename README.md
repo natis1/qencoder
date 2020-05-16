@@ -45,6 +45,25 @@ Download the latest 7zip in the "releases" section.
 
 ##### Linux
 
+###### Ubuntu:
+
+Via pip:
+
+First, install ffmpeg, an up to date version of aomenc, and an up to date version of vpxenc. Then install qencoder.
+```
+sudo apt update
+sudo apt install python-pip vpx-tools aom-tools ffmpeg
+pip install qencoder
+```
+
+###### Arch:
+
+It's recommended that you install it from the aur:
+
+https://aur.archlinux.org/packages/qencoder/
+
+###### Others/Manual installation:
+
 Git clone this repository:
 
 ```git clone https://github.com/natis1/qencoder```

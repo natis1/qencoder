@@ -46,7 +46,7 @@
     <item row="1" column="0" colspan="4">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab_simple">
        <attribute name="title">
@@ -183,51 +183,51 @@
              <string>The final quality of your output video. If unsure, use 26.</string>
             </property>
             <property name="currentIndex">
-             <number>4</number>
+             <number>0</number>
             </property>
             <item>
              <property name="text">
-              <string>Ultra low (q 40)</string>
+              <string>Ultra low (crf 40)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Very low (q 36)</string>
+              <string>Very low (crf 36)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Low (q 32)</string>
+              <string>Low (crf 32)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Medium (q 28)</string>
+              <string>Medium (crf 28)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Good (q 26)</string>
+              <string>Good (crf 26)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Very Good (q 24)</string>
+              <string>Very Good (crf 24)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Amazing (q 20)</string>
+              <string>Amazing (crf 20)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Effectively Lossless (q 10)</string>
+              <string>Effectively Lossless (crf 10)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>Lossless (q 0)</string>
+              <string>Lossless (crf 0)</string>
              </property>
             </item>
             <item>
@@ -394,7 +394,7 @@
              <string>With 2 channel stereo, 96kbps is usually transparent.</string>
             </property>
             <property name="text">
-             <string>Audio Bitrate</string>
+             <string>Audio Bitrate (kbps)</string>
             </property>
            </widget>
           </item>
@@ -548,10 +548,10 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_q">
             <property name="statusTip">
-             <string>Q factor: quality of video (lower numbers = more quality). Bitrate: target video kbps to use.</string>
+             <string>Constant rate factor (Q): quality of video (lower numbers = more quality). Bitrate: target video kbps to use.</string>
             </property>
             <property name="text">
-             <string>Q factor</string>
+             <string>CRF</string>
             </property>
            </widget>
           </item>

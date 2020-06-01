@@ -84,6 +84,8 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_del.clicked.connect(self.removeFromQueue)
         self.actionSave_Preset.triggered.connect(self.savePresetAs)
         self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
+        if (len(sys.argv) > 1):
+            self.inputPath.setText(sys.argv[1])
 
         #this dictionary will be use to map combobox index into a values
         self.qualitydict = {
@@ -452,7 +454,7 @@ class window(QMainWindow, Ui_qencoder):
         self.label_quality.setEnabled(0)
 
     def bitrateDisableState(self, checkbox):
-        self.label_q.setText("Q factor")
+        self.label_q.setText("CRF")
         self.spinBox_quality.setMaximum(63)
         self.spinBox_quality.setMinimum(0)
         self.spinBox_quality.setValue(30)
@@ -486,6 +488,9 @@ class window(QMainWindow, Ui_qencoder):
             vparams += " --end-usage=vbr --target-bitrate=" + str(self.spinBox_quality.value())
         else :
             vparams += " --end-usage=q --cq-level=" + str(self.spinBox_quality.value())
+            if (self.spinBox_quality.value() == 0):
+                vparams += " --lossless=1"
+
         if (self.checkBox_hdr.isChecked()):
             vparams += " --bit-depth=10 "
         else :

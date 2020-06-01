@@ -8,6 +8,6 @@ __pycache__/
 temp/
 temp_*/
 enkode.spec
-window.pyproject.user
+window.pyproject.user*
 dist/
 qencoder.egg-info/

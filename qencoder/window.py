@@ -503,7 +503,7 @@ class window(QMainWindow, Ui_qencoder):
         if (self.checkBox_audiocmd.isChecked()):
             return self.textEdit_audiocmd.toPlainText()
         if (self.checkBox_audio.isChecked()):
-            return "-b:a " + str(self.spinBox_audio.value()) + " -c:a libopus"
+            return "-b:a " + str(self.spinBox_audio.value()) + "k -c:a libopus"
         else :
             return "-c:a copy"
 

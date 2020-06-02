@@ -273,7 +273,7 @@ class window(QMainWindow, Ui_qencoder):
             else:
                 finalString += ", crf=" + str(i[1]['qual']) + ""
             if (i[1]['rtenc']):
-                finalString += ", spd=" + str(i[1]['cpuused'] + "r")
+                finalString += ", spd=" + str(i[1]['cpuused']) + "r"
             else:
                 finalString += ", spd=" + str(i[1]['cpuused'])
             finalString += ", 2p=" + str(int(i[1]['2p']))

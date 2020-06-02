@@ -11,3 +11,4 @@ enkode.spec
 window.pyproject.user*
 dist/
 qencoder.egg-info/
+*.autosave

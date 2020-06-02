@@ -191,6 +191,17 @@ class Av1an:
 
             scenes = [str(scene[0].get_frames()) for scene in scene_list]
 
+            if (self.d["min_split_dist"] > 0):
+                print("Removing short scenes")
+                imod = -1
+                for i in range(len(scenes) - 1):
+                    if (int(scenes[i - imod]) - int(scenes[i - 1 - imod]) < self.d["min_split_dist"]):
+                        del scenes[i - imod]
+                        imod += 1
+                if (video_manager.get_duration()[0].get_frames() - int(scenes[len(scenes) - 1]) < self.d["min_split_dist"]):
+                    del scenes[len(scenes) - 1]
+                print(f"There are {len(scenes)} scenes after pruning from {len(scene_list)}")
+
             if (self.d.get('min_splits')):
                 # Reduce scenes intelligently to match number of workers
                 workers = self.d.get('workers')
@@ -286,13 +297,9 @@ class Av1an:
 
         if encoder == 'vpx':
             enc = 'vpxenc'
-            if not self.d.get("video_params"):
-                self.d["video_params"] = '--codec=vp9 --threads=4 --cpu-used=1 --end-usage=q --cq-level=40'
 
         if encoder == 'aom':
             enc = 'aomenc'
-            if not self.d.get("video_params"):
-                self.d["video_params"] = '--threads=4 --cpu-used=6 --end-usage=q --cq-level=40'
 
         single_p = f'{enc} --passes=1 '
         two_p_1 = f'{enc} --passes=2 --pass=1'

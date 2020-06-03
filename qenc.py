@@ -7,10 +7,12 @@ from PyQt5.QtWidgets import QApplication
 
 import sys
 import multiprocessing
+import os
 
 #baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
 
 def main():
+    os.setpgrp()
     global window
     if sys.platform.startswith('win'):
         multiprocessing.freeze_support()

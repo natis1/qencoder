@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets, uic, QtGui
-from PyQt5.QtWidgets import QInputDialog, QFileDialog, QApplication, QMainWindow, QSpinBox, QCheckBox, QMessageBox
+from PyQt5.QtWidgets import QInputDialog, QFileDialog, QApplication, QMainWindow, QSpinBox, QCheckBox, QMessageBox, QPushButton
 from functools import partial
 
+import signal
 import sys
 import qencoder
 from qencoder.mainwindow import Ui_qencoder
@@ -30,6 +31,7 @@ class window(QMainWindow, Ui_qencoder):
     runningEncode = False
     encodeList = []
     currentFile = ""
+    scenedetectFailState = -1
     if 'APPDATA' in os.environ:
         confighome = os.environ['APPDATA']
     elif 'XDG_CONFIG_HOME' in os.environ:
@@ -204,6 +206,9 @@ class window(QMainWindow, Ui_qencoder):
         curSettings = self.getPresetDict()
         file_pi = open(self.configpath, 'wb')
         pickle.dump(curSettings, file_pi)
+        file_pi.close()
+        os.killpg(0, signal.SIGTERM)
+        event.accept()
 
     def saveQueueAuto(self):
         if (len(self.currentFile) < 1):
@@ -667,11 +672,12 @@ class window(QMainWindow, Ui_qencoder):
         self.encodeVideo1()
         print("Running in non-queued mode with a single video")
         self.runningEncode = True
-        self.worker = EncodeWorker([args])
+        self.worker = EncodeWorker([args], self)
         self.workerThread = QtCore.QThread()
         self.worker.updateQueuedStatus.connect(self.updateQueuedStatus)
         self.worker.updateStatusProgress.connect(self.updateStatusProgress)
         self.worker.encodeFinished.connect(self.encodeFinished)
+        self.worker.sceneDetectFailed.connect(self.sceneDetectFailed)
         self.worker.moveToThread(self.workerThread)  # Move the Worker object to the Thread object
         self.workerThread.started.connect(self.worker.run)  # Init worker run() at startup (optional)
         self.workerThread.start()
@@ -822,17 +828,50 @@ class window(QMainWindow, Ui_qencoder):
 
         print("Enabled all buttons, returning program to normal")
 
+    def sceneDetectFailed(self):
+        msgbox = QMessageBox()
+        msgbox.setIcon(QMessageBox.Warning)
+        msgbox.setText("Scenedetect splitting failed. This could be because your input video format is not supported, your operating system (eg if you are on Windows it can sometimes fail), your ffmpeg version may be wrong, or your input video may be corrupted. Reencoding first may fix some of these issues, alternatively we could avoid splitting, or do minimal splitting based only on video length.")
+        msgbox.setWindowTitle("Scenedetect failed!")
+        reencodeButton = QPushButton()
+        reencodeButton.setText("Reencode")
+        msgbox.addButton(reencodeButton, QMessageBox.ActionRole)
+        nosplitButton = QPushButton()
+        nosplitButton.setText("Do not split")
+        msgbox.addButton(nosplitButton, QMessageBox.ActionRole)
+        minsplitButton = QPushButton()
+        minsplitButton.setText("Minimal time based splitting")
+        msgbox.addButton(minsplitButton, QMessageBox.ActionRole)
+        msgbox.addButton(QMessageBox.Abort)
+        msgbox.exec()
+
+        if (msgbox.clickedButton() == reencodeButton):
+            print("Reencoding")
+            self.scenedetectFailState = 1
+        elif (msgbox.clickedButton() == nosplitButton):
+            print("no splitting")
+            self.scenedetectFailState = 3
+        elif (msgbox.clickedButton() == minsplitButton):
+            print("minsplitting")
+            self.scenedetectFailState = 2
+        else:
+            print("Aborting")
+            self.scenedetectFailState = 0
+
 class EncodeWorker(QtCore.QObject):
     updateStatusProgress = QtCore.pyqtSignal(str, int)
     updateQueuedStatus = QtCore.pyqtSignal(str)
     encodeFinished = QtCore.pyqtSignal(bool)
+    sceneDetectFailed = QtCore.pyqtSignal()
 
-    def __init__(self, argdata):
+    def __init__(self, argdata, window):
         super().__init__()
         self.argdat = argdata
+        self.window = window
 
     def runProcessing(self, dictargs):
-        av1an = Av1an(dictargs)
+        self.window.scenedetectFailState = -1
+        av1an = Av1an(dictargs, self.window)
         print(dictargs)
         av1an.main_thread(self)
         print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))

@@ -3,6 +3,7 @@
 import re
 import math
 import time
+from time import sleep
 import socket
 import sys
 import os
@@ -45,10 +46,11 @@ if sys.platform == 'linux':
 class Av1an:
     frameCounterArray = []
 
-    def __init__(self, argdict):
+    def __init__(self, argdict, window):
         """Av1an - Python all-in-one toolkit for AV1, VP9, VP8 encodes."""
         self.FFMPEG = 'ffmpeg -y -hide_banner -loglevel error'
         self.d = argdict
+        self.window = window
         if not find_executable('ffmpeg'):
             print('No ffmpeg found')
             sys.exit()
@@ -144,7 +146,7 @@ class Av1an:
             self.reduce_scenes(scenes)
         return scenes
 
-    def scene_detect(self, video: Path):
+    def scene_detect(self, video: Path, qinterface):
         """
         Running PySceneDetect detection on source video for segmenting.
         Optimal threshold settings 15-50
@@ -220,7 +222,8 @@ class Av1an:
             # Fix for windows character limit
             if sys.platform != 'linux':
                 scenes = self.reduce_scenes(scenes)
-
+            if (len(scenes) <= 1):
+                return ['0']
             scenes = ','.join(scenes[1:])
 
             return scenes
@@ -228,12 +231,47 @@ class Av1an:
         except Exception as e:
             self.log(f'Error in PySceneDetect: {e}\n')
             print(f'Error in PySceneDetect{e}\n')
-            print("Not splitting video. Possibly corrupted.")
-            return []
+            print("Not able to split video. Possibly corrupted.")
+            qinterface.sceneDetectFailed.emit()
+            failval = self.window.scenedetectFailState
+            while (failval == -1):
+                sleep(0.1)
+                failval = self.window.scenedetectFailState
+            if (failval == 0):
+                return []
+            elif (failval == 3):
+                print("Not splitting video... possibly corrupted")
+                return ['0']
+            elif (failval == 2):
+                print("Please wait... determining number of frames in video using ffmpeg")
+                frmax = self.frame_probe(video)
+                workers = self.d.get('workers')
+                ideal_split_pts = [math.floor(x * frmax/(workers)) for x in range(workers)]
+                frames = [str(x) for x in ideal_split_pts]
+                print(f"Splitting at: {frames}")
+                frames = ','.join(frames[1:])
+                return frames
+            else:
+                print("Please wait... transcoding video")
+                output = str(video.parts[-1]) + ".temp.mp4"
+                tempout = self.d.get('temp')
+                cq = self.man_cq(self.d.get('video_params'), -1)
+                crf = 10
+                if (cq < 15):
+                    crf = 6
+                if (cq < 10):
+                    crf = 4
+                if (cq < 5):
+                    crf = 0
+                cmd = f'{self.FFMPEG} -i "{video}" -c:a copy -c:v h264 -crf {crf} "{tempout / output}"'
+                self.call_cmd(cmd)
+                self.d['input_file'] = Path(f"{tempout / output}")
+                return self.scene_detect(self.d.get('input_file'), qinterface)
+                # reencode
 
     def split(self, video, frames):
         """Spliting video by frame numbers, or just copying video."""
-        if len(frames) == 0:
+        if len(frames) == 1:
             self.log('Copying video for encode\n')
             cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -c copy ' \
                   f'-avoid_negative_ts 1 "{self.d.get("temp") / "split" / "0.mkv"}"'
@@ -241,7 +279,7 @@ class Av1an:
             self.log('Splitting video\n')
             cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -f segment -segment_frames {frames} ' \
                   f'-c copy -avoid_negative_ts 1 "{self.d.get("temp") / "split" / "%04d.mkv"}"'
-
+        print(cmd)
         self.call_cmd(cmd)
 
     def frame_probe(self, source: Path):
@@ -560,40 +598,45 @@ class Av1an:
                     print(f'Encoding error: {exc}')
                     sys.exit()
 
-    def setup_routine(self):
+    def setup_routine(self, qinterface):
         """
         All pre encoding routine.
         Scene detection, splitting, audio extraction
         """
         if self.d.get('resume') and (self.d.get('temp') / 'done.txt').exists():
             self.set_logging()
+            return 0
 
         else:
             self.setup()
             self.set_logging()
 
             # Splitting video and sorting big-first
-            framenums = self.scene_detect(self.d.get('input_file'))
+            framenums = self.scene_detect(self.d.get('input_file'), qinterface)
+            if (len(framenums) == 0):
+                return 1
             self.split(self.d.get('input_file'), framenums)
 
             # Extracting audio
             self.extract_audio(self.d.get('input_file'))
+            return 0
 
     def video_encoding(self, qinterface):
         """Encoding video on local machine."""
-        self.setup_routine()
-
-        files = self.get_video_queue(self.d.get('temp') / 'split')
-
-        # Make encode queue
-        commands = self.compose_encoding_queue(files)
-
         # Determine resources if workers don't set
         if self.d.get('workers') != 0:
             self.d['workers'] = self.d.get('workers')
         else:
             self.determine_resources()
 
+        code = self.setup_routine(qinterface)
+        if (code != 0):
+            raise RuntimeError("Unable to encode video because splitting failed without any possibility of recovery.")
+
+        files = self.get_video_queue(self.d.get('temp') / 'split')
+
+        # Make encode queue
+        commands = self.compose_encoding_queue(files)
         self.encoding_loop(commands, qinterface)
         self.runningFrameCounter = False
 

@@ -660,6 +660,7 @@ class window(QMainWindow, Ui_qencoder):
         self.worker.updateQueuedStatus.connect(self.updateQueuedStatus)
         self.worker.updateStatusProgress.connect(self.updateStatusProgress)
         self.worker.encodeFinished.connect(self.encodeFinished)
+        self.worker.sceneDetectFailed.connect(self.sceneDetectFailed)
         self.worker.moveToThread(self.workerThread)  # Move the Worker object to the Thread object
         self.workerThread.started.connect(self.worker.run)  # Init worker run() at startup (optional)
         self.workerThread.start()

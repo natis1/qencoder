@@ -12,7 +12,8 @@ import os
 #baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
 
 def main():
-    os.setpgrp()
+    if not sys.platform.startswith('win'):
+        os.setpgrp()
     global window
     if sys.platform.startswith('win'):
         multiprocessing.freeze_support()

@@ -207,7 +207,8 @@ class window(QMainWindow, Ui_qencoder):
         file_pi = open(self.configpath, 'wb')
         pickle.dump(curSettings, file_pi)
         file_pi.close()
-        os.killpg(0, signal.SIGTERM)
+        if not sys.platform.startswith('win'):
+            os.killpg(0, signal.SIGTERM)
         event.accept()
 
     def saveQueueAuto(self):

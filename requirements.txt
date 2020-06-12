@@ -1,6 +1,6 @@
-opencv_python
-scenedetect
 scipy
+scenedetect
 psutil
+opencv_python
 numpy
 PyQt5

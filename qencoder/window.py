@@ -1,27 +1,26 @@
 #!/usr/bin/python3
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets, uic, QtGui
-from PyQt5.QtWidgets import QInputDialog, QFileDialog, QApplication, QMainWindow, QSpinBox, QCheckBox, QMessageBox, QPushButton
+from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QPushButton
 from functools import partial
 
 import signal
 import sys
-import qencoder
 from qencoder.mainwindow import Ui_qencoder
 from qencoder.pav1n import Av1an
 
 import traceback
 
-import multiprocessing
-from threading import Thread
-
-from types import SimpleNamespace
 from pathlib import Path
 import os
+from time import sleep
+import psutil
+from multiprocessing import Process, Queue
 
 import pickle
 
-#baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
+# baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
+
 
 class window(QMainWindow, Ui_qencoder):
     twopassState = True
@@ -32,6 +31,8 @@ class window(QMainWindow, Ui_qencoder):
     encodeList = []
     currentFile = ""
     scenedetectFailState = -1
+    currentlyRunning = 0
+    killFlag = 0
     if 'APPDATA' in os.environ:
         confighome = os.environ['APPDATA']
     elif 'XDG_CONFIG_HOME' in os.environ:
@@ -45,6 +46,7 @@ class window(QMainWindow, Ui_qencoder):
         self.setupUi(self)
         self.inputFileChoose.clicked.connect(self.inputFileSelect)
         self.outputFileChoose.clicked.connect(self.outputFileSelect)
+        self.pushButton_vmafmodel.clicked.connect(self.inputVmafSelect)
         self.label_audio.setEnabled(0)
         self.spinBox_quality.setValue(26)
         enable_slot = partial(self.audioEnableState, self.checkBox_audio)
@@ -81,6 +83,8 @@ class window(QMainWindow, Ui_qencoder):
         self.actionSave_Queue.triggered.connect(self.saveQueueAuto)
         self.actionSave_Queue_As.triggered.connect(self.saveQueueTo)
         self.actionOpen_Queue.triggered.connect(self.openQueueFrom)
+        self.actionSave_Preset.triggered.connect(self.savePresetAs)
+        self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
         self.pushButton_save.setEnabled(0)
         self.pushButton_save.clicked.connect(self.saveToQueue)
         self.tabWidget.currentChanged[int].connect(self.setCustomText)
@@ -88,8 +92,9 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_down.clicked.connect(self.queueMoveDown)
         self.pushButton_del.clicked.connect(self.removeFromQueue)
         self.pushButton_edit.clicked.connect(self.editCurrentQueue)
-        self.actionSave_Preset.triggered.connect(self.savePresetAs)
-        self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
+        self.checkBox_cropping.clicked.connect(self.enableCropping)
+        self.checkBox_rescale.clicked.connect(self.enableRescale)
+        self.checkBox_vmaf.clicked.connect(self.enableDisableVmaf)
         if (len(sys.argv) > 1):
             self.inputPath.setText(sys.argv[1])
 
@@ -129,11 +134,40 @@ class window(QMainWindow, Ui_qencoder):
             filehandler = open(self.configpath, 'rb')
             settings = pickle.load(filehandler)
             self.setFromPresetDict(settings)
+            self.enableCropping()
+            self.enableRescale()
         except:
             print("Unable to load existing preset at: " + str(self.configpath) + ".")
             print("Possibly the first time you have run this, corrupted, or an older version")
             print("Do not report this")
         # self.speedButton.changeEvent.connect(self.setSpeed)
+
+    def enableDisableVmaf(self):
+        state = self.checkBox_vmaf.isChecked()
+        self.label_vmafpath.setEnabled(state)
+        self.pushButton_vmafmodel.setEnabled(state)
+        self.label_qmin.setEnabled(state)
+        self.label_target.setEnabled(state)
+        self.label_teststeps.setEnabled(state)
+        self.spinBox_vmafsteps.setEnabled(state)
+        self.spinBox_minq.setEnabled(state)
+        self.doubleSpinBox_vmaf.setEnabled(state)
+        self.spinBox_boost.setEnabled(not state)
+        self.label_boost.setEnabled(not state)
+
+    def enableRescale(self):
+        state = self.checkBox_rescale.isChecked()
+        self.spinBox_xres.setEnabled(state)
+        self.spinBox_yres.setEnabled(state)
+        self.label_xres.setEnabled(state)
+        self.label_yres.setEnabled(state)
+
+    def enableCropping(self):
+        state = self.checkBox_cropping.isChecked()
+        self.spinBox_croptop.setEnabled(state)
+        self.spinBox_cropdown.setEnabled(state)
+        self.spinBox_cropleft.setEnabled(state)
+        self.spinBox_cropright.setEnabled(state)
 
     def editCurrentQueue(self):
         if (self.listWidget.currentRow() <= -1):
@@ -160,6 +194,7 @@ class window(QMainWindow, Ui_qencoder):
             self.spinBox_minsplit.setEnabled(1)
 
     def encodeFinished(self, success):
+        self.currentlyRunning = 0
         if success:
             self.pushButton.setEnabled(1)
             self.pushButton.setText("Finalize")
@@ -337,7 +372,7 @@ class window(QMainWindow, Ui_qencoder):
         # if colorspace index is 5 uses a custom value set by the user
         if (inputSpace == 5):
             return self.lineEdit_colordata.text()
-        #return empty string if current encoder combobox indexes is 2 
+        #return empty string if current encoder combobox indexes is 2
         if (self.comboBox_encoder.currentIndex() == 2):
             return ""
         #else map the colorspace index into a list of av1,vp9 color space then return the appropriate string based on the encoder
@@ -462,8 +497,12 @@ class window(QMainWindow, Ui_qencoder):
         else:
             return self.spinBox_quality.value()
 
+    def inputVmafSelect(self):
+        filename = QFileDialog.getOpenFileName(filter = "VMAF models(*.pkl *.model);;All(*)")
+        self.label_vmafpath.setText(filename[0])
+
     def inputFileSelect(self):
-        filename = QFileDialog.getOpenFileName(filter = "Videos(*.mp4 *.mkv *.webm *.flv *.gif *.3gp *.wmv *.avi);;All(*)")
+        filename = QFileDialog.getOpenFileName(filter = "Videos(*.mp4 *.mkv *.webm *.flv *.gif *.3gp *.wmv *.avi *.y4m);;All(*)")
         self.inputPath.setText(filename[0])
         if (len(self.outputPath.text()) > 1):
             self.pushButton.setEnabled(1)
@@ -495,6 +534,8 @@ class window(QMainWindow, Ui_qencoder):
 
     def bitrateEnableState(self, checkbox):
         self.label_q.setText("Bitrate (kbps)")
+        self.checkBox_vmaf.setChecked(0)
+        self.checkBox_vmaf.setEnabled(0)
         self.spinBox_quality.setMaximum(99999)
         self.spinBox_quality.setMinimum(8)
         self.spinBox_quality.setValue(3000)
@@ -506,6 +547,7 @@ class window(QMainWindow, Ui_qencoder):
 
     def bitrateDisableState(self, checkbox):
         self.label_q.setText("CRF")
+        self.checkBox_vmaf.setEnabled(1)
         self.spinBox_quality.setMaximum(63)
         self.spinBox_quality.setMinimum(0)
         self.spinBox_quality.setValue(30)
@@ -517,7 +559,22 @@ class window(QMainWindow, Ui_qencoder):
     def getFFMPEGParams(self):
         if (self.checkBox_ffmpegcmd.isChecked()):
             return self.textEdit_ffmpegcmd.toPlainText()
-        return ""
+        astr = ""
+        addedStuff = False
+        if (self.checkBox_cropping.isChecked() and (self.spinBox_cropdown.value() > 0 or self.spinBox_cropright.value() > 0 or self.spinBox_croptop.value() > 0 or self.spinBox_cropleft.value() > 0)):
+            widthSub = self.spinBox_cropright.value() + self.spinBox_cropleft.value()
+            heightSub = self.spinBox_croptop.value() + self.spinBox_cropdown.value()
+            astr += "-filter:v \"crop=iw-" + str(widthSub) + ":ih-" + str(heightSub) + ":" + str(self.spinBox_cropleft.value()) + ":" + str(self.spinBox_croptop.value())
+            addedStuff = True
+        if (self.checkBox_rescale.isChecked()):
+            if (addedStuff):
+                astr += ",scale=" + str(self.spinBox_xres.value()) + ":" + str(self.spinBox_yres.value())
+            else:
+                astr += "-filter:v \"scale=" + str(self.spinBox_xres.value()) + ":" + str(self.spinBox_yres.value())
+                addedStuff = True
+        if (addedStuff) :
+            astr += "\""
+        return astr
 
     def getVideoParams(self):
         if (self.checkBox_videocmd.isChecked()):
@@ -635,10 +692,20 @@ class window(QMainWindow, Ui_qencoder):
                 'output_file': Path(self.outputPath.text()), 'scenes' : None,
                 'resume' : self.checkBox_resume.isChecked(), 'keep' : self.checkBox_tempfolder.isChecked(),
                 'min_splits' : self.checkBox_minsplit.isChecked(), 'pix_format' : self.comboBox_inputFormat.currentText(),
-                'ffmpeg_cmd' : self.getFFMPEGParams(), 'min_split_dist' : self.spinBox_minsplit.value()
+                'ffmpeg_cmd' : self.getFFMPEGParams(), 'min_split_dist' : self.spinBox_minsplit.value(),
+                'use_vmaf' : self.checkBox_vmaf.isChecked()
         }
+        if (self.checkBox_vmaf.isChecked()):
+            args['vmaf_steps'] = self.spinBox_vmafsteps.value()
+            args['min_cq'] = self.spinBox_minq.value()
+            args['max_cq'] = 63
+            args['vmaf_target'] = self.doubleSpinBox_vmaf.value()
+            args['vmaf_path'] = self.label_vmafpath.text()
 
-        if (self.checkBox_bitrate.isChecked() or self.spinBox_boost.value() < 1):
+        if (self.checkBox_minsplit.isChecked()):
+            args['min_split_dist'] = 0
+
+        if (self.checkBox_bitrate.isChecked() or self.spinBox_boost.value() < 1 or self.checkBox_vmaf.isChecked()):
             args['boost'] = False
             args['br'] = 0
             args['bl'] = 0
@@ -686,8 +753,21 @@ class window(QMainWindow, Ui_qencoder):
 
     def encodeVideo1(self):
         if (self.runningEncode):
+            if (self.currentlyRunning):
+                buttonReply = QMessageBox.question(self, 'Stop encode?',
+                                                   "Warning: You may lose encoding progress.", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if buttonReply != QMessageBox.Yes:
+                    return
+
             self.finalizeEncode()
             return
+        self.actionOpen.setEnabled(0)
+        self.actionSave.setEnabled(0)
+        self.actionSave_Queue.setEnabled(0)
+        self.actionSave_Queue_As.setEnabled(0)
+        self.actionOpen_Queue.setEnabled(0)
+        self.actionSave_Preset.setEnabled(0)
+        self.actionOpen_Preset.setEnabled(0)
         self.label_3.setEnabled(0)
         self.label_threads.setEnabled(0)
         self.spinBox_threads.setEnabled(0)
@@ -697,8 +777,8 @@ class window(QMainWindow, Ui_qencoder):
         self.textEdit_videocmd.setEnabled(0)
         self.textEdit_audiocmd.setEnabled(0)
         self.textEdit_ffmpegcmd.setEnabled(0)
-
-        self.pushButton.setEnabled(0)
+        self.currentlyRunning = True
+        self.pushButton.setText("Cancel")
         self.pushButton_encQueue.setEnabled(0)
         self.pushButton_save.setEnabled(0)
         self.progressBar_total.setEnabled(1)
@@ -750,9 +830,36 @@ class window(QMainWindow, Ui_qencoder):
         self.label_maxkfdist.setEnabled(0)
         self.spinBox_maxkfdist.setEnabled(0)
         self.spinBox_minsplit.setEnabled(0)
+        self.pushButton_edit.setEnabled(0)
+        self.checkBox_cropping.setEnabled(0)
+        self.checkBox_rescale.setEnabled(0)
+        self.label_xres.setEnabled(0)
+        self.label_yres.setEnabled(0)
+        self.spinBox_yres.setEnabled(0)
+        self.spinBox_xres.setEnabled(0)
+        self.spinBox_cropleft.setEnabled(0)
+        self.spinBox_cropright.setEnabled(0)
+        self.spinBox_croptop.setEnabled(0)
+        self.spinBox_cropdown.setEnabled(0)
+        self.checkBox_vmaf.setEnabled(0)
+        self.label_boost.setEnabled(0)
+        self.label_qmin.setEnabled(0)
+        self.label_teststeps.setEnabled(0)
+        self.label_target.setEnabled(0)
+        self.pushButton_vmafmodel.setEnabled(0)
+        self.label_vmafpath.setEnabled(0)
+        self.spinBox_minq.setEnabled(0)
+        self.spinBox_vmafsteps.setEnabled(0)
+        self.doubleSpinBox_vmaf.setEnabled(0)
 
     def finalizeEncode(self):
+        self.workerThread.quit()
+        self.workerThread.wait(2000)
+        self.killFlag = True
+        self.workerThread.wait()
+        self.killFlag = False
         self.runningEncode = False
+        self.currentlyRunning = False
         self.pushButton.setStyleSheet("")
         self.pushButton.setText("▶  Encode")
         self.label_threads.setEnabled(1)
@@ -793,8 +900,11 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_quality.setEnabled(1)
         self.checkBox_bitrate.setEnabled(1)
         self.label_preset.setEnabled(1)
+        self.enableDisableVmaf()
         if (not self.checkBox_bitrate.isChecked()):
+            self.checkBox_vmaf.setEnabled(1)
             self.label_boost.setEnabled(1)
+            self.spinBox_boost.setEnabled(1)
             self.comboBox_quality.setEnabled(1)
             self.label_quality.setEnabled(1)
         if (not self.checkBox_rtenc.isChecked()):
@@ -817,6 +927,7 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_up.setEnabled(1)
         self.pushButton_down.setEnabled(1)
         self.pushButton_del.setEnabled(1)
+        self.pushButton_edit.setEnabled(1)
         self.listWidget.setEnabled(1)
         self.pushButton_save.setEnabled(0)
         self.progressBar_total.setValue(0)
@@ -825,10 +936,21 @@ class window(QMainWindow, Ui_qencoder):
         self.label_maxkfdist.setEnabled(1)
         self.spinBox_maxkfdist.setEnabled(1)
         if (not self.checkBox_minsplit.isChecked()):
-            self.spinBox_minsplit.setEnabled(0)
-            self.label_minsplit.setEnabled(0)
-
+            self.spinBox_minsplit.setEnabled(1)
+            self.label_minsplit.setEnabled(1)
+        self.actionOpen.setEnabled(1)
+        self.actionSave.setEnabled(1)
+        self.actionSave_Queue.setEnabled(1)
+        self.actionSave_Queue_As.setEnabled(1)
+        self.actionOpen_Queue.setEnabled(1)
+        self.actionSave_Preset.setEnabled(1)
+        self.actionOpen_Preset.setEnabled(1)
+        self.checkBox_cropping.setEnabled(1)
+        self.checkBox_rescale.setEnabled(1)
+        self.enableCropping()
+        self.enableRescale()
         print("Enabled all buttons, returning program to normal")
+
 
     def sceneDetectFailed(self):
         msgbox = QMessageBox()
@@ -865,11 +987,14 @@ class EncodeWorker(QtCore.QObject):
     updateQueuedStatus = QtCore.pyqtSignal(str)
     encodeFinished = QtCore.pyqtSignal(bool)
     sceneDetectFailed = QtCore.pyqtSignal()
+    runningPav1n = False
 
     def __init__(self, argdata, window):
         super().__init__()
         self.argdat = argdata
         self.window = window
+        self.q = Queue()
+        self.istty = sys.stdin.isatty()
 
     def runProcessing(self, dictargs):
         self.window.scenedetectFailState = -1
@@ -878,24 +1003,56 @@ class EncodeWorker(QtCore.QObject):
         av1an.main_thread(self)
         print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
 
-    def run(self):
+    def internalRunner(self):
+        print("Running")
         if (len(self.argdat) > 1):
-            self.updateQueuedStatus.emit("Encoding video 1/" + str(len(self.argdat)))
+            self.q.put([1, "Encoding video 1/" + str(len(self.argdat))])
         try:
             for i in range(len(self.argdat)):
                 if (len(self.argdat) > 1):
-                    self.updateStatusProgress.emit("Processing video " + str(i + 1), 0)
+                    self.q.put([0, "Processing video " + str(i + 1), 0])
+                    self.runningPav1n = True
                     self.runProcessing(self.argdat[i][0])
-                    self.updateQueuedStatus.emit("Completed encode " + str(i + 1) + "/" + str(len(self.argdat)))
+                    while (self.runningPav1n):
+                        sleep(0.1)
+                    self.q.put([1, "Completed encode " + str(i + 1) + "/" + str(len(self.argdat))])
                 else:
-                    self.updateStatusProgress.emit("Processing video", 0)
+                    self.q.put([0, "Processing video", 0])
+                    self.runningPav1n = True
                     self.runProcessing(self.argdat[i][0])
+                    while (self.runningPav1n):
+                        sleep(0.1)
 
             if (len(self.argdat) > 1):
-                self.updateQueuedStatus.emit("Completed video queue")
-            self.encodeFinished.emit(True)
+                self.q.put([1, "Completed video queue"])
+            self.q.put([2, True])
         except Exception as e:
             print(e)
             traceback.print_exc()
-            self.encodeFinished.emit(False)
+            self.q.put([2, False])
 
+    def run(self):
+        t = Process(target = self.internalRunner)
+        t.start()
+        while (t.is_alive()):
+            sleep(0.1)
+            if(self.window.killFlag):
+                print("Killing all children processes. Hopefully this works.")
+                parent = psutil.Process(t.pid)
+                for child in parent.children(recursive=True):  # or parent.children() for recursive=False
+                    child.kill()
+                parent.kill()
+                t.join()
+            try:
+                qdat = self.q.get(False)
+                if (qdat[0] == 0):
+                    self.updateStatusProgress.emit(qdat[1], qdat[2])
+                if (qdat[0] == 1):
+                    self.updateQueuedStatus.emit(qdat[1])
+                if (qdat[0] == 2):
+                    self.encodeFinished.emit(qdat[1])
+                if (qdat[0] == 3):
+                    self.sceneDetectFailed.emit()
+            except Exception as e:
+                pass
+        self.q.put([0, "Encode completed!", 100])

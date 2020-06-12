@@ -4,7 +4,6 @@ import re
 import math
 import time
 from time import sleep
-import socket
 import sys
 import os
 import shutil
@@ -12,7 +11,6 @@ import atexit
 from distutils.spawn import find_executable
 from ast import literal_eval
 from psutil import virtual_memory
-import argparse
 import subprocess
 from pathlib import Path
 import cv2
@@ -23,14 +21,9 @@ from scenedetect.video_manager import VideoManager
 from scenedetect.scene_manager import SceneManager
 from scenedetect.detectors import ContentDetector
 import threading
-from threading import Timer
-from threading import Thread
 import concurrent
-from concurrent import futures
 import datetime
-
-from PyQt5.QtWidgets import QLabel, QProgressBar
-
+from math import isnan
 
 if sys.version_info < (3, 7):
     print('Python 3.7+ required')
@@ -41,6 +34,25 @@ if sys.platform == 'linux':
         os.system("stty sane")
 
     atexit.register(restore_term)
+
+
+def read_vmaf_xml(file):
+    with open(file, 'r') as f:
+        file = f.readlines()
+        file = [x.strip() for x in file if 'vmaf="' in x]
+        vmafs = []
+        for i in file:
+            vmf = i[i.rfind('="') + 2: i.rfind('"')]
+            vmafs.append(float(vmf))
+
+        vmafs = [round(float(x), 5) for x in vmafs if isinstance(x, float)]
+        calc = [x for x in vmafs if isinstance(x, float) and not isnan(x)]
+        mean = round(sum(calc) / len(calc), 2)
+        perc_1 = round(np.percentile(calc, 1), 2)
+        perc_25 = round(np.percentile(calc, 25), 2)
+        perc_75 = round(np.percentile(calc, 75), 2)
+
+        return vmafs, mean, perc_1, perc_25, perc_75
 
 
 class Av1an:
@@ -81,8 +93,7 @@ class Av1an:
             return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
         with open(self.d.get('logging'), 'a') as log:
-            subprocess.run(cmd, shell=True, stdout=log, stderr=log)
-
+            a = subprocess.run(cmd, shell=True, stdout=log, stderr=log)
 
     def determine_resources(self):
         """Returns number of workers that machine can handle with selected encoder."""
@@ -184,7 +195,7 @@ class Av1an:
 
             # Perform scene detection on video_manager.
             self.log(f'Starting scene detection Threshold: {self.d.get("threshold")}\n')
-            scene_manager.detect_scenes(frame_source=video_manager, show_progress=sys.stdin.isatty())
+            scene_manager.detect_scenes(frame_source=video_manager, show_progress=qinterface.istty)
 
             # Obtain list of detected scenes.
             scene_list = scene_manager.get_scene_list(base_timecode)
@@ -214,7 +225,7 @@ class Av1an:
                 for i in ideal_split_pts:
                     # This will find the closest split points to the ideal ones
                     # for perfectly segmenting the video into n pieces
-                    scenes.append(min(intscenes, key=lambda x:abs(x-i)))
+                    scenes.append(min(intscenes, key=lambda x: abs(x-i)))
                 scenes = list(set(scenes))
                 scenes.sort()
                 scenes = [str(x) for x in scenes]
@@ -232,7 +243,7 @@ class Av1an:
             self.log(f'Error in PySceneDetect: {e}\n')
             print(f'Error in PySceneDetect{e}\n')
             print("Not able to split video. Possibly corrupted.")
-            qinterface.sceneDetectFailed.emit()
+            qinterface.q.put([3])
             failval = self.window.scenedetectFailState
             while (failval == -1):
                 sleep(0.1)
@@ -280,7 +291,118 @@ class Av1an:
             cmd = f'{self.FFMPEG} -i "{video}" -map_metadata -1 -an -f segment -segment_frames {frames} ' \
                   f'-c copy -avoid_negative_ts 1 "{self.d.get("temp") / "split" / "%04d.mkv"}"'
         print(cmd)
-        self.call_cmd(cmd)
+        a = self.call_cmd(cmd)
+
+    def call_vmaf(self, source: Path, encoded: Path, file=False):
+
+        model: Path = self.d.get("vmaf_path")
+        if model:
+            mod = f":model_path={model}"
+        else:
+            mod = ''
+
+        # For vmaf calculation both source and encoded segment scaled to 1080
+        # for proper vmaf calculation
+        fl = source.with_name(encoded.stem).with_suffix('.xml').as_posix()
+        cmd = f'ffmpeg -hide_banner -r 60 -i {source.as_posix()} -r 60 -i {encoded.as_posix()}  ' \
+              f'-filter_complex "[0:v]scale=1920:1080:flags=spline:force_original_aspect_ratio=decrease[scaled1];' \
+              f'[1:v]scale=1920:1080:flags=spline:force_original_aspect_ratio=decrease[scaled2];' \
+              f'[scaled2][scaled1]libvmaf=log_path={fl}{mod}" -f null - '
+
+        call = self.call_cmd(cmd, capture_output=True)
+        if file:
+            return fl
+
+        call = call.decode().strip()
+        vmf = call.split()[-1]
+        try:
+            vmf = float(vmf)
+        except ValueError:
+            vmf = 0
+        return vmf
+
+    def target_vmaf(self, source):
+        # TODO speed up for vmaf stuff
+        # TODO reduce complexity
+
+        if self.d.get('vmaf_steps') < 4:
+            print('Target vmaf require more than 3 probes/steps')
+            self.terminate()
+
+        vmaf_target = self.d.get('vmaf_target')
+        mincq = self.d.get('min_cq')
+        maxcq = self.d.get('max_cq')
+        steps = self.d.get('vmaf_steps')
+        frames = self.frame_probe(source)
+        probe = source.with_suffix(".mp4")
+        ffmpeg = self.d.get('ffmpeg')
+
+        try:
+            # Making 4 fps probing file
+            cmd = f' ffmpeg -y -hide_banner -loglevel error -i {source.as_posix()} ' \
+                  f'-r 4 -an {ffmpeg} -c:v libx264 -crf 0 {source.with_suffix(".mp4")}'
+            self.call_cmd(cmd)
+
+            # Make encoding fork
+            q = list(np.unique(np.linspace(mincq, maxcq, num=steps, dtype=int, endpoint=True)))
+
+            # Moving highest cq to first check, for early skips
+            # checking highest first, lowers second, for early skips
+            q.insert(0, q.pop(-1))
+            # Encoding probes, 1 pass, highest speed
+            single_p = 'aomenc  -q --passes=1 '
+            params = "--threads=8 --end-usage=q --cpu-used=6 --cq-level="
+            cmd = [[f'ffmpeg -y -hide_banner -loglevel error -i {probe} {self.d.get("ffmpeg_pipe")} {single_p} '
+                    f'{params}{x} -o {probe.with_name(f"v_{x}{probe.stem}")}.ivf - ',
+                    probe, probe.with_name(f'v_{x}{probe.stem}').with_suffix('.ivf'), x] for x in q]
+
+            # Encoding probe and getting vmaf
+            ls = []
+            pr = []
+            for count, i in enumerate(cmd):
+                self.call_cmd(i[0])
+
+                v = self.call_vmaf(i[1], i[2], file=True)
+                _, mean, perc_1, perc_25, perc_75 = read_vmaf_xml(v)
+
+                pr.append(round(mean, 1))
+                ls.append((round(mean, 3), i[3]))
+
+                # Early Skip on big CQ
+                if count == 0 and round(mean) > vmaf_target:
+                    self.log(f"File: {source.stem}, Fr: {frames}\n"
+                             f"Probes: {pr}, Early Skip High CQ\n"
+                             f"Target CQ: {maxcq}\n\n")
+                    return maxcq, f'Target: CQ {maxcq} Vmaf: {round(mean, 2)}\n'
+
+                # Early Skip on small CQ
+                if count == 1 and round(mean) < vmaf_target:
+                    self.log(f"File: {source.stem}, Fr: {frames}\n"
+                             f"Probes: {pr}, Early Skip Low CQ\n"
+                             f"Target CQ: {mincq}\n\n")
+                    return mincq, f'Target: CQ {mincq} Vmaf: {round(mean, 2)}\n'
+
+            x = [x[1] for x in sorted(ls)]
+            y = [float(x[0]) for x in sorted(ls)]
+
+            # Interpolate data
+            f = interpolate.interp1d(x, y, kind='cubic')
+            xnew = np.linspace(min(x), max(x), max(x) - min(x))
+
+            # Getting value closest to target
+            tl = list(zip(xnew, f(xnew)))
+            vmaf_target_cq = min(tl, key=lambda x: abs(x[1] - vmaf_target))
+
+            self.log(f"File: {source.stem}, Fr: {frames}\n"
+                     f"Probes: {sorted(pr)}\n"
+                     f"Target CQ: {round(vmaf_target_cq[0])}\n\n")
+
+            return int(vmaf_target_cq[0]), f'Target: CQ {int(vmaf_target_cq[0])} Vmaf: {round(float(vmaf_target_cq[1]), 2)}\n'
+
+        except Exception as e:
+            _, _, exc_tb = sys.exc_info()
+            print(f'Error in vmaf_target {e} \nAt line {exc_tb.tb_lineno}')
+            exit(1)
 
     def frame_probe(self, source: Path):
         """Get frame count."""
@@ -410,18 +532,10 @@ class Av1an:
 
     @staticmethod
     def man_cq(command: str, cq: int):
-        """
-        If cq == -1 returns current value of cq in command
-        Else return command with new cq value
-        """
+        """Return command with new cq value"""
         mt = '--cq-level='
-        if cq == -1:
-            mt = '--cq-level='
-            cq = int(command[command.find(mt) + 11:command.find(mt) + 13])
-            return cq
-        else:
-            cmd = command[:command.find(mt) + 11] + str(cq) + command[command.find(mt) + 13:]
-            return cmd
+        cmd = command[:command.find(mt) + 11] + str(cq) + command[command.find(mt) + 13:]
+        return cmd
 
     def boost(self, command: str, br_geom, new_cq=0):
         """Based on average brightness of video decrease(boost) Quantize value for encoding."""
@@ -450,6 +564,17 @@ class Av1an:
             self.log(str(target))
             frame_probe_source = self.frame_probe(source)
 
+            if (self.d['use_vmaf']):
+                tg_cq, tg_vf = self.target_vmaf(source)
+
+                cm1 = self.man_cq(commands[0], tg_cq)
+
+                if self.d.get('passes') == 2:
+                    cm2 = self.man_cq(commands[1], tg_cq)
+                    commands = (cm1, cm2) + commands[2:]
+                else:
+                    commands = cm1 + commands[1:]
+
             if self.d.get('boost'):
                 br = self.get_brightness(source.absolute().as_posix())
 
@@ -476,8 +601,8 @@ class Av1an:
                 cmd = rf'{self.FFMPEG} {commands[i]}'
                 if (i < (len(commands[:-2]) - 1)):
                     self.call_cmd(cmd)
-                else :
-                    regexp = re.compile("frame\s+\d+/(\d+)")
+                else:
+                    regexp = re.compile("frame\\s+\\d+/(\\d+)")
                     for line in self.lineByLineCmd(cmd):
                         try:
                             framecnt = int(re.findall(regexp, str(line))[-1])
@@ -543,8 +668,8 @@ class Av1an:
             return
         for i in self.frameCounterArray:
             frameCount += i
-        qinterface.updateStatusProgress.emit("FR: " + str(frameCount) + "/" + str(totalFrames) + " FPS: " + str( frameCount / ((curTime - self.startingTime).total_seconds()))[0:5],
-                                             math.floor(100 * frameCount / totalFrames))
+        qinterface.q.put([0,"FR: " + str(frameCount) + "/" + str(totalFrames) + " FPS: " + str( frameCount / ((curTime - self.startingTime).total_seconds()))[0:5],
+                                             math.floor(100 * frameCount / totalFrames)])
 
     def encoding_loop(self, commands, qinterface):
         """Creating process pool for encoders, creating progress bar."""
@@ -639,8 +764,9 @@ class Av1an:
         commands = self.compose_encoding_queue(files)
         self.encoding_loop(commands, qinterface)
         self.runningFrameCounter = False
-
         self.concatenate_video()
+        sleep(0.2)
+        qinterface.runningPav1n = False
 
     def main_thread(self, qinterface):
         """Main."""

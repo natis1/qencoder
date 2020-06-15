@@ -1,6 +1,6 @@
 # Finally, a qt encoder
 
-qencoder is the gui you never knew you needed. With the power of scene-based splitting, it's now faster and easier than ever to encode with free codecs. Make the perfect video encodes with qencoder!
+qencoder is the gui you never knew you needed. Using scene-based splitting, qencoder gives massive benefits to speed and quality of existing codecs. qencoder is a ui inspired by, and borrowing much code from the venerable console tool [Av1an](https://github.com/master-of-zen/Av1an/) by Master of Zen. Make the perfect video encodes with qencoder! 
 
 ### Simple and easy to use
 ![Simple view](/screenshots/simple.png)
@@ -83,3 +83,5 @@ Then run it with
 ##### Legal note
 
 app.ico modified from Wikimedia Commons by Videoplasty.com, CC-BY-SA 4.0
+
+pav1n.py contains code created by Master of Zen among others, originally licensed as [MIT](https://github.com/master-of-zen/Av1an/blob/e46db7ea6cb2c06556e0b8f957d617282cee0e47/LICENSE.md) and relicensed as gplv3 for the version within this project.

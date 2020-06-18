@@ -335,7 +335,7 @@ class Av1an:
         steps = self.d.get('vmaf_steps')
         frames = self.frame_probe(source)
         probe = source.with_suffix(".mp4")
-        ffmpeg = self.d.get('ffmpeg')
+        ffmpeg = self.d.get('ffmpeg_cmd')
 
         try:
             # Making 4 fps probing file

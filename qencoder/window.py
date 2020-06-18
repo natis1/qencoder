@@ -154,6 +154,8 @@ class window(QMainWindow, Ui_qencoder):
         self.doubleSpinBox_vmaf.setEnabled(state)
         self.spinBox_boost.setEnabled(not state)
         self.label_boost.setEnabled(not state)
+        self.spinBox_maxq.setEnabled(state)
+        self.label_maxq.setEnabled(state)
 
     def enableRescale(self):
         state = self.checkBox_rescale.isChecked()
@@ -698,7 +700,7 @@ class window(QMainWindow, Ui_qencoder):
         if (self.checkBox_vmaf.isChecked()):
             args['vmaf_steps'] = self.spinBox_vmafsteps.value()
             args['min_cq'] = self.spinBox_minq.value()
-            args['max_cq'] = 63
+            args['max_cq'] = self.spinBox_maxq.value()
             args['vmaf_target'] = self.doubleSpinBox_vmaf.value()
             args['vmaf_path'] = self.label_vmafpath.text()
 
@@ -851,6 +853,8 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_minq.setEnabled(0)
         self.spinBox_vmafsteps.setEnabled(0)
         self.doubleSpinBox_vmaf.setEnabled(0)
+        self.spinBox_maxq.setEnabled(0)
+        self.label_maxq.setEnabled(0)
 
     def finalizeEncode(self):
         self.workerThread.quit()

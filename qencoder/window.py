@@ -17,6 +17,7 @@ import os
 from time import sleep
 import psutil
 from multiprocessing import Process, Queue
+import threading
 
 import pickle
 
@@ -821,6 +822,7 @@ class window(QMainWindow, Ui_qencoder):
         self.textEdit_audiocmd.setEnabled(0)
         self.textEdit_ffmpegcmd.setEnabled(0)
         self.currentlyRunning = True
+        self.pushButton.setEnabled(1)
         self.pushButton.setText("Cancel")
         self.pushButton_encQueue.setEnabled(0)
         self.pushButton_save.setEnabled(0)
@@ -1006,7 +1008,13 @@ class window(QMainWindow, Ui_qencoder):
         self.enableDisableGoodSplit()
         print("Enabled all buttons, returning program to normal")
 
-class AwfulWindowsWorkaround(Process):
+
+class EncodeWorker(QtCore.QObject):
+    updateStatusProgress = QtCore.pyqtSignal(str, int)
+    updateQueuedStatus = QtCore.pyqtSignal(str)
+    encodeFinished = QtCore.pyqtSignal(bool)
+    runningPav1n = False
+
     def __init__(self, argdata, window, shutdown):
         super().__init__()
         self.argdat = argdata
@@ -1022,7 +1030,7 @@ class AwfulWindowsWorkaround(Process):
         av1an.main_thread(self)
         print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
 
-    def run(self):
+    def runInternal(self):
         print("Running")
         if (len(self.argdat) > 1):
             self.q.put([1, "Encoding video 1/" + str(len(self.argdat))])
@@ -1060,23 +1068,8 @@ class AwfulWindowsWorkaround(Process):
                     os.system("shutdown now -h")
 
 
-
-class EncodeWorker(QtCore.QObject):
-    updateStatusProgress = QtCore.pyqtSignal(str, int)
-    updateQueuedStatus = QtCore.pyqtSignal(str)
-    encodeFinished = QtCore.pyqtSignal(bool)
-    runningPav1n = False
-
-    def __init__(self, argdata, window, shutdown):
-        super().__init__()
-        self.argdat = argdata
-        self.window = window
-        self.shutdown = shutdown
-        self.q = Queue()
-        self.istty = sys.stdin.isatty()
-
     def run(self):
-        t = AwfulWindowsWorkaround(self.argdat, self.window, self.shutdown)
+        t = threading.Thread(target=self.runInternal)
         t.start()
         while (t.is_alive()):
             sleep(0.05)

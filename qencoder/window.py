@@ -6,6 +6,7 @@ from functools import partial
 
 import signal
 import sys
+
 from qencoder.mainwindow import Ui_qencoder
 from qencoder.pav1n import Av1an
 
@@ -95,6 +96,7 @@ class window(QMainWindow, Ui_qencoder):
         self.checkBox_cropping.clicked.connect(self.enableCropping)
         self.checkBox_rescale.clicked.connect(self.enableRescale)
         self.checkBox_vmaf.clicked.connect(self.enableDisableVmaf)
+        self.checkBox_lessshitsplit.clicked.connect(self.enableDisableGoodSplit)
         if (len(sys.argv) > 1):
             self.inputPath.setText(sys.argv[1])
 
@@ -126,8 +128,7 @@ class window(QMainWindow, Ui_qencoder):
             0: ["", "--color-space=unknown"],
             1: ["--color-primaries=bt709 --transfer-characteristics=bt709 --matrix-coefficients=bt709", "--color-space=bt709"],
             2: ["--color-primaries=bt601 --transfer-characteristics=bt601 --matrix-coefficients=bt601", "--color-space=bt601"],
-            3: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020ncl", "--color-space=bt2020"],
-            4: ["--color-primaries=bt2020 --transfer-characteristics=bt2020-10bit --matrix-coefficients=bt2020cl", "--color-space=bt2020"]
+            3: ["--color-primaries=bt2020 --transfer-characteristics=smpte2084 --matrix-coefficients=bt2020ncl", "--color-space=bt2020"],
         }
 
         try:
@@ -136,11 +137,18 @@ class window(QMainWindow, Ui_qencoder):
             self.setFromPresetDict(settings)
             self.enableCropping()
             self.enableRescale()
+            self.enableDisableVmaf()
+            self.enableDisableGoodSplit()
         except:
             print("Unable to load existing preset at: " + str(self.configpath) + ".")
             print("Possibly the first time you have run this, corrupted, or an older version")
             print("Do not report this")
         # self.speedButton.changeEvent.connect(self.setSpeed)
+
+    def enableDisableGoodSplit(self):
+        state = self.checkBox_lessshitsplit.isChecked()
+        self.label_split.setEnabled(not state)
+        self.spinBox_split.setEnabled(not state)
 
     def enableDisableVmaf(self):
         state = self.checkBox_vmaf.isChecked()
@@ -186,6 +194,10 @@ class window(QMainWindow, Ui_qencoder):
             self.pushButton_save.setEnabled(1)
             del self.encodeList[self.listWidget.currentRow()]
             self.redrawQueueList()
+            self.enableCropping()
+            self.enableRescale()
+            self.enableDisableVmaf()
+            self.enableDisableGoodSplit()
 
     def disableMinimumSplitBox(self, state):
         if state:
@@ -280,6 +292,7 @@ class window(QMainWindow, Ui_qencoder):
         self.encodeList = pickle.load(filehandler)
         self.currentFile = filename[0]
         self.redrawQueueList()
+        self.tabWidget.setCurrentIndex(5)
 
     def queueMoveUp(self):
         if (self.listWidget.currentRow() > 0):
@@ -372,7 +385,7 @@ class window(QMainWindow, Ui_qencoder):
         #Get indexes of current colorspace comboBox
         inputSpace = self.comboBox_colorspace.currentIndex()
         # if colorspace index is 5 uses a custom value set by the user
-        if (inputSpace == 5):
+        if (inputSpace == 4):
             return self.lineEdit_colordata.text()
         #return empty string if current encoder combobox indexes is 2
         if (self.comboBox_encoder.currentIndex() == 2):
@@ -668,6 +681,20 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_minsplit.setValue(dict['minsplitsize'])
         self.spinBox_maxkfdist.setValue(dict['maxkfdist'])
 
+        # 1.5 variables
+        self.comboBox_inputFormat.setCurrentIndex(dict['inputFmt'])
+        self.comboBox_colorspace.setCurrentIndex(dict['colordataCS'])
+        self.lineEdit_colordata.setText(dict['colordataText'])
+        self.checkBox_vmaf.setChecked(dict['isTargetVMAF'])
+        self.spinBox_minq.setValue(dict['TargetVMAFMinQ'])
+        self.spinBox_maxq.setValue(dict['TargetVMAFMaxQ'])
+        self.spinBox_vmafsteps.setValue(dict['TargetVMAFSteps'])
+        self.doubleSpinBox_vmaf.setValue(dict['TargetVMAFValue'])
+        self.label_vmafpath.setText(dict['TargetVMAFPath'])
+        self.checkBox_shutdown.setChecked(dict['ShutdownAfter'])
+        self.checkBox_lessshitsplit.setChecked(dict['BetterSplittingAlgo'])
+        self.checkBox_unsafeSplit.setChecked(dict['unsafe_split'])
+
     def getPresetDict(self):
         return {'2p': self.checkBox_twopass.isChecked(), 'audio': self.checkBox_audio.isChecked(), 'enc': self.comboBox_encoder.currentIndex(),
                 'aq' : self.audioqualitybox.currentIndex(), 'preset': self.presetbox.currentIndex(),
@@ -681,7 +708,14 @@ class window(QMainWindow, Ui_qencoder):
                 'cusvid': self.checkBox_videocmd.isChecked(), 'cusaud': self.checkBox_audiocmd.isChecked(),
                 'cusffmpeg': self.checkBox_ffmpegcmd.isChecked(), 'vidcmd': self.textEdit_videocmd.toPlainText(),
                 'audcmd': self.textEdit_audiocmd.toPlainText(), 'ffmpegcmd': self.textEdit_ffmpegcmd.toPlainText(),
-                'minsplitsize': self.spinBox_minsplit.value(), 'maxkfdist': self.spinBox_maxkfdist.value()
+                'minsplitsize': self.spinBox_minsplit.value(), 'maxkfdist': self.spinBox_maxkfdist.value(),
+                'inputFmt': self.comboBox_inputFormat.currentIndex(), 'colordataCS': self.comboBox_colorspace.currentIndex(),
+                'colordataText': self.lineEdit_colordata.text(), 'isTargetVMAF' : self.checkBox_vmaf.isChecked(),
+                'TargetVMAFMinQ': self.spinBox_minq.value(), 'TargetVMAFMaxQ': self.spinBox_maxq.value(),
+                'TargetVMAFSteps': self.spinBox_vmafsteps.value(), 'TargetVMAFValue': self.doubleSpinBox_vmaf.value(),
+                'TargetVMAFPath': self.label_vmafpath.text(), 'ShutdownAfter': self.checkBox_shutdown.isChecked(),
+                'BetterSplittingAlgo': self.checkBox_lessshitsplit.isChecked(),
+                'unsafe_split': self.checkBox_unsafeSplit.isChecked()
         }
 
 
@@ -689,14 +723,17 @@ class window(QMainWindow, Ui_qencoder):
         args = {'video_params': self.getVideoParams(), 'input_file': Path(self.inputPath.text()), 'encoder': 'aom',
                 'workers' : self.spinBox_jobs.value(), 'audio_params': self.getAudioParams(),
                 'threshold': self.spinBox_split.value(),
-                'temp': Path(os.path.abspath("temp_" + Path(self.outputPath.text()).parts[-1])),
                 'logging' : None, 'passes' : (2 if self.checkBox_twopass.isChecked() else 1),
                 'output_file': Path(self.outputPath.text()), 'scenes' : None,
                 'resume' : self.checkBox_resume.isChecked(), 'keep' : self.checkBox_tempfolder.isChecked(),
                 'min_splits' : self.checkBox_minsplit.isChecked(), 'pix_format' : self.comboBox_inputFormat.currentText(),
                 'ffmpeg_cmd' : self.getFFMPEGParams(), 'min_split_dist' : self.spinBox_minsplit.value(),
-                'use_vmaf' : self.checkBox_vmaf.isChecked()
+                'use_vmaf' : self.checkBox_vmaf.isChecked(), 'threads' : self.spinBox_threads.value(),
+                'better_split' : self.checkBox_lessshitsplit.isChecked(), 'cpuused' : self.spinBox_speed.value(),
+                'unsafe_split' : self.checkBox_unsafeSplit.isChecked()
         }
+        args['temp'] = Path(str(os.path.splitext(self.outputPath.text())[0]) + "/temp_" + str(os.path.splitext(self.outputPath.text())[1]))
+
         if (self.checkBox_vmaf.isChecked()):
             args['vmaf_steps'] = self.spinBox_vmafsteps.value()
             args['min_cq'] = self.spinBox_minq.value()
@@ -717,6 +754,7 @@ class window(QMainWindow, Ui_qencoder):
             args['br'] = self.spinBox_boost.value()
         if (self.comboBox_encoder.currentIndex() >= 1):
             args['encoder'] = 'vpx'
+            args['better_split'] = False
         return args
 
     def encodeVideoQueue(self):
@@ -725,12 +763,11 @@ class window(QMainWindow, Ui_qencoder):
             return
         self.encodeVideo1()
         self.runningEncode = True
-        self.worker = EncodeWorker(self.encodeList)
+        self.worker = EncodeWorker(self.encodeList, self, self.checkBox_shutdown.isChecked())
         self.workerThread = QtCore.QThread()
         self.worker.updateQueuedStatus.connect(self.updateQueuedStatus)
         self.worker.updateStatusProgress.connect(self.updateStatusProgress)
         self.worker.encodeFinished.connect(self.encodeFinished)
-        self.worker.sceneDetectFailed.connect(self.sceneDetectFailed)
         self.worker.moveToThread(self.workerThread)  # Move the Worker object to the Thread object
         self.workerThread.started.connect(self.worker.run)  # Init worker run() at startup (optional)
         self.workerThread.start()
@@ -743,12 +780,11 @@ class window(QMainWindow, Ui_qencoder):
         self.encodeVideo1()
         print("Running in non-queued mode with a single video")
         self.runningEncode = True
-        self.worker = EncodeWorker([args], self)
+        self.worker = EncodeWorker([args], self, self.checkBox_shutdown.isChecked())
         self.workerThread = QtCore.QThread()
         self.worker.updateQueuedStatus.connect(self.updateQueuedStatus)
         self.worker.updateStatusProgress.connect(self.updateStatusProgress)
         self.worker.encodeFinished.connect(self.encodeFinished)
-        self.worker.sceneDetectFailed.connect(self.sceneDetectFailed)
         self.worker.moveToThread(self.workerThread)  # Move the Worker object to the Thread object
         self.workerThread.started.connect(self.worker.run)  # Init worker run() at startup (optional)
         self.workerThread.start()
@@ -763,6 +799,11 @@ class window(QMainWindow, Ui_qencoder):
 
             self.finalizeEncode()
             return
+        print("Writing current settings to config")
+        curSettings = self.getPresetDict()
+        file_pi = open(self.configpath, 'wb')
+        pickle.dump(curSettings, file_pi)
+        file_pi.close()
         self.actionOpen.setEnabled(0)
         self.actionSave.setEnabled(0)
         self.actionSave_Queue.setEnabled(0)
@@ -855,6 +896,9 @@ class window(QMainWindow, Ui_qencoder):
         self.doubleSpinBox_vmaf.setEnabled(0)
         self.spinBox_maxq.setEnabled(0)
         self.label_maxq.setEnabled(0)
+        self.checkBox_shutdown.setEnabled(0)
+        self.checkBox_lessshitsplit.setEnabled(0)
+        self.checkBox_unsafeSplit.setEnabled(0)
 
     def finalizeEncode(self):
         self.workerThread.quit()
@@ -871,7 +915,6 @@ class window(QMainWindow, Ui_qencoder):
         self.checkBox_audio.setEnabled(1)
         self.spinBox_speed.setEnabled(1)
         self.spinBox_speed.setValue(self.spinBox_speed.value())
-        self.spinBox_split.setEnabled(1)
         self.spinBox_jobs.setEnabled(1)
         self.label_jobs.setEnabled(1)
         self.inputFileChoose.setEnabled(1)
@@ -882,7 +925,12 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_threads.setEnabled(1)
         self.label_2.setEnabled(1)
         self.label_q.setEnabled(1)
-        self.label_split.setEnabled(1)
+        self.checkBox_lessshitsplit.setEnabled(1)
+        self.checkBox_shutdown.setEnabled(1)
+        if (not self.checkBox_lessshitsplit.isChecked()):
+            self.label_split.setEnabled(1)
+            self.spinBox_split.setEnabled(1)
+
         self.label_inputformat.setEnabled(1)
         self.label_6.setEnabled(1)
         self.label_5.setEnabled(1)
@@ -951,52 +999,24 @@ class window(QMainWindow, Ui_qencoder):
         self.actionOpen_Preset.setEnabled(1)
         self.checkBox_cropping.setEnabled(1)
         self.checkBox_rescale.setEnabled(1)
+        self.checkBox_unsafeSplit.setEnabled(1)
         self.enableCropping()
         self.enableRescale()
+        self.enableDisableVmaf()
+        self.enableDisableGoodSplit()
         print("Enabled all buttons, returning program to normal")
-
-
-    def sceneDetectFailed(self):
-        msgbox = QMessageBox()
-        msgbox.setIcon(QMessageBox.Warning)
-        msgbox.setText("Scenedetect splitting failed. This could be because your input video format is not supported, your operating system (eg if you are on Windows it can sometimes fail), your ffmpeg version may be wrong, or your input video may be corrupted. Reencoding first may fix some of these issues, alternatively we could avoid splitting, or do minimal splitting based only on video length.")
-        msgbox.setWindowTitle("Scenedetect failed!")
-        reencodeButton = QPushButton()
-        reencodeButton.setText("Reencode")
-        msgbox.addButton(reencodeButton, QMessageBox.ActionRole)
-        nosplitButton = QPushButton()
-        nosplitButton.setText("Do not split")
-        msgbox.addButton(nosplitButton, QMessageBox.ActionRole)
-        minsplitButton = QPushButton()
-        minsplitButton.setText("Minimal time based splitting")
-        msgbox.addButton(minsplitButton, QMessageBox.ActionRole)
-        msgbox.addButton(QMessageBox.Abort)
-        msgbox.exec()
-
-        if (msgbox.clickedButton() == reencodeButton):
-            print("Reencoding")
-            self.scenedetectFailState = 1
-        elif (msgbox.clickedButton() == nosplitButton):
-            print("no splitting")
-            self.scenedetectFailState = 3
-        elif (msgbox.clickedButton() == minsplitButton):
-            print("minsplitting")
-            self.scenedetectFailState = 2
-        else:
-            print("Aborting")
-            self.scenedetectFailState = 0
 
 class EncodeWorker(QtCore.QObject):
     updateStatusProgress = QtCore.pyqtSignal(str, int)
     updateQueuedStatus = QtCore.pyqtSignal(str)
     encodeFinished = QtCore.pyqtSignal(bool)
-    sceneDetectFailed = QtCore.pyqtSignal()
     runningPav1n = False
 
-    def __init__(self, argdata, window):
+    def __init__(self, argdata, window, shutdown):
         super().__init__()
         self.argdat = argdata
         self.window = window
+        self.shutdown = shutdown
         self.q = Queue()
         self.istty = sys.stdin.isatty()
 
@@ -1029,17 +1049,26 @@ class EncodeWorker(QtCore.QObject):
 
             if (len(self.argdat) > 1):
                 self.q.put([1, "Completed video queue"])
-            self.q.put([2, True])
+            self.q.put([2, 1])
         except Exception as e:
             print(e)
             traceback.print_exc()
-            self.q.put([2, False])
+            self.q.put([2, 0])
+        if (self.shutdown):
+            if (sys.platform.startswith('win')):
+                os.system('shutdown -s')
+            else:
+                try:
+                    os.system('systemctl poweroff')
+                except Exception as e:
+                    # If that doesn't work we can try shutting down the "other" way
+                    os.system("shutdown now -h")
 
     def run(self):
         t = Process(target = self.internalRunner)
         t.start()
         while (t.is_alive()):
-            sleep(0.1)
+            sleep(0.05)
             if(self.window.killFlag):
                 print("Killing all children processes. Hopefully this works.")
                 parent = psutil.Process(t.pid)
@@ -1055,8 +1084,6 @@ class EncodeWorker(QtCore.QObject):
                     self.updateQueuedStatus.emit(qdat[1])
                 if (qdat[0] == 2):
                     self.encodeFinished.emit(qdat[1])
-                if (qdat[0] == 3):
-                    self.sceneDetectFailed.emit()
             except Exception as e:
                 pass
         self.q.put([0, "Encode completed!", 100])

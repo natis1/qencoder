@@ -163,7 +163,7 @@
        <string/>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_simple">
        <attribute name="title">
@@ -787,22 +787,17 @@
             </item>
             <item>
              <property name="text">
-              <string>bt709</string>
+              <string>HD SDR (bt709)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>bt601</string>
+              <string>Classic SDR (bt601)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>bt2020-10b ncl</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>bt2020-10b cl</string>
+              <string>HDR (bt-2020)</string>
              </property>
             </item>
             <item>
@@ -965,31 +960,40 @@
         <string>Dimensions</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_10">
-        <item row="2" column="1">
-         <spacer name="verticalSpacer_3">
+        <item row="1" column="2">
+         <spacer name="horizontalSpacer_7">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Maximum</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>20</width>
-            <height>40</height>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="0">
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Maximum</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
            </size>
           </property>
          </spacer>
         </item>
         <item row="1" column="1">
          <layout class="QGridLayout" name="gridLayout_9">
-          <item row="0" column="1">
-           <widget class="QCheckBox" name="checkBox_cropping">
-            <property name="statusTip">
-             <string>Cropping happens before rescaling if both are enabled</string>
-            </property>
-            <property name="text">
-             <string>Crop</string>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="5">
            <widget class="QSpinBox" name="spinBox_xres">
             <property name="statusTip">
@@ -1009,38 +1013,48 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QSpinBox" name="spinBox_croptop">
-            <property name="statusTip">
-             <string>Pixels to remove from the top</string>
-            </property>
-            <property name="maximum">
-             <number>9999</number>
-            </property>
-            <property name="singleStep">
-             <number>2</number>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QSpinBox" name="spinBox_cropleft">
-            <property name="statusTip">
-             <string>Pixels to remove from the left</string>
-            </property>
-            <property name="maximum">
-             <number>9999</number>
-            </property>
-            <property name="singleStep">
-             <number>2</number>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="4">
-           <widget class="QLabel" name="label_xres">
+          <item row="2" column="4">
+           <widget class="QLabel" name="label_yres">
             <property name="text">
-             <string>X resolution</string>
+             <string>Y resolution</string>
             </property>
            </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="spinBox_cropdown">
+            <property name="statusTip">
+             <string>Pixels to remove from the bottom</string>
+            </property>
+            <property name="maximum">
+             <number>9999</number>
+            </property>
+            <property name="singleStep">
+             <number>2</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="5">
+           <widget class="QCheckBox" name="checkBox_rescale">
+            <property name="statusTip">
+             <string>Rescaling happens after cropping if both are enabled</string>
+            </property>
+            <property name="text">
+             <string>Rescale</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <spacer name="horizontalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
           <item row="2" column="2">
            <widget class="QSpinBox" name="spinBox_cropright">
@@ -1055,10 +1069,26 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="4">
-           <widget class="QLabel" name="label_yres">
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="checkBox_cropping">
+            <property name="statusTip">
+             <string>Cropping happens before rescaling if both are enabled</string>
+            </property>
             <property name="text">
-             <string>Y resolution</string>
+             <string>Crop</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QSpinBox" name="spinBox_croptop">
+            <property name="statusTip">
+             <string>Pixels to remove from the top</string>
+            </property>
+            <property name="maximum">
+             <number>9999</number>
+            </property>
+            <property name="singleStep">
+             <number>2</number>
             </property>
            </widget>
           </item>
@@ -1081,20 +1111,17 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="5">
-           <widget class="QCheckBox" name="checkBox_rescale">
-            <property name="statusTip">
-             <string>Rescaling happens after cropping if both are enabled</string>
-            </property>
+          <item row="1" column="4">
+           <widget class="QLabel" name="label_xres">
             <property name="text">
-             <string>Rescale</string>
+             <string>X resolution</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
-           <widget class="QSpinBox" name="spinBox_cropdown">
+          <item row="2" column="0">
+           <widget class="QSpinBox" name="spinBox_cropleft">
             <property name="statusTip">
-             <string>Pixels to remove from the bottom</string>
+             <string>Pixels to remove from the left</string>
             </property>
             <property name="maximum">
              <number>9999</number>
@@ -1104,20 +1131,20 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="3">
-           <spacer name="horizontalSpacer_5">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
          </layout>
+        </item>
+        <item row="2" column="1">
+         <spacer name="verticalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
         <item row="0" column="1">
          <spacer name="verticalSpacer_4">
@@ -1135,38 +1162,6 @@
           </property>
          </spacer>
         </item>
-        <item row="1" column="0">
-         <spacer name="horizontalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Maximum</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="1" column="2">
-         <spacer name="horizontalSpacer_7">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Maximum</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_experimental">
@@ -1177,16 +1172,19 @@
         <string>Experimental</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_11">
-        <item row="0" column="9">
-         <widget class="QLabel" name="label_target">
+        <item row="1" column="1">
+         <widget class="QSpinBox" name="spinBox_maxq">
           <property name="enabled">
            <bool>false</bool>
           </property>
-          <property name="statusTip">
-           <string>Percent visual fidelity compared to source video to target. Recommended range: 80-99</string>
+          <property name="minimum">
+           <number>1</number>
           </property>
-          <property name="text">
-           <string>Target</string>
+          <property name="maximum">
+           <number>63</number>
+          </property>
+          <property name="value">
+           <number>50</number>
           </property>
          </widget>
         </item>
@@ -1203,45 +1201,6 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <spacer name="verticalSpacer_5">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="8">
-         <spacer name="horizontalSpacer_8">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="2">
-         <spacer name="horizontalSpacer_9">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
         <item row="0" column="5">
          <spacer name="horizontalSpacer_10">
           <property name="orientation">
@@ -1254,6 +1213,39 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_maxq">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>max crf</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBox_vmaf">
+          <property name="statusTip">
+           <string>Encode for specific visual fidelity. Requires crf and darkboost disabled. Increases encode time.</string>
+          </property>
+          <property name="text">
+           <string>Target VMAF</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QLabel" name="label_qmin">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="statusTip">
+           <string>Minimum crf value to test/use at target vmaf.</string>
+          </property>
+          <property name="text">
+           <string>min crf</string>
+          </property>
+         </widget>
         </item>
         <item row="0" column="7">
          <widget class="QSpinBox" name="spinBox_vmafsteps">
@@ -1274,22 +1266,6 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="4">
-         <widget class="QSpinBox" name="spinBox_minq">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="statusTip">
-           <string>Minimum crf value to test/use at target vmaf.</string>
-          </property>
-          <property name="maximum">
-           <number>62</number>
-          </property>
-          <property name="value">
-           <number>25</number>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="10">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_vmaf">
           <property name="enabled">
@@ -1306,6 +1282,19 @@
           </property>
          </widget>
         </item>
+        <item row="0" column="9">
+         <widget class="QLabel" name="label_target">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="statusTip">
+           <string>Percent visual fidelity compared to source video to target. Recommended range: 80-99</string>
+          </property>
+          <property name="text">
+           <string>Target</string>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="3" colspan="7">
          <widget class="QLabel" name="label_vmafpath">
           <property name="enabled">
@@ -1313,6 +1302,22 @@
           </property>
           <property name="text">
            <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QSpinBox" name="spinBox_minq">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="statusTip">
+           <string>Minimum crf value to test/use at target vmaf.</string>
+          </property>
+          <property name="maximum">
+           <number>62</number>
+          </property>
+          <property name="value">
+           <number>25</number>
           </property>
          </widget>
         </item>
@@ -1341,52 +1346,75 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="3">
-         <widget class="QLabel" name="label_qmin">
-          <property name="enabled">
-           <bool>false</bool>
+        <item row="0" column="8">
+         <spacer name="horizontalSpacer_8">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="3" column="0">
+         <spacer name="verticalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="0" column="2">
+         <spacer name="horizontalSpacer_9">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="2" column="0" colspan="4">
+         <widget class="QCheckBox" name="checkBox_shutdown">
           <property name="statusTip">
-           <string>Minimum crf value to test/use at target vmaf.</string>
+           <string>May not work depending on OS/config, please test first with a short queue/video.</string>
           </property>
           <property name="text">
-           <string>min crf</string>
+           <string>Shutdown after completion</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_maxq">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>max crf</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QSpinBox" name="spinBox_maxq">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="minimum">
-           <number>1</number>
-          </property>
-          <property name="maximum">
-           <number>63</number>
-          </property>
-          <property name="value">
-           <number>50</number>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0" colspan="2">
-         <widget class="QCheckBox" name="checkBox_vmaf">
+        <item row="2" column="8" colspan="3">
+         <widget class="QCheckBox" name="checkBox_lessshitsplit">
           <property name="statusTip">
-           <string>Encode for specific visual fidelity. Requires crf and darkboost disabled. Increases encode time.</string>
+           <string>Do not use pyscenedetect at all. Still in testing but if you can test it, check this. It's totally worth it.</string>
           </property>
           <property name="text">
-           <string>Target VMAF</string>
+           <string>Use First Pass For Splitting</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="4" colspan="3">
+         <widget class="QCheckBox" name="checkBox_unsafeSplit">
+          <property name="statusTip">
+           <string>Allow splitting on frames that weren't keyframes in the original. might cause chunking errors.</string>
+          </property>
+          <property name="text">
+           <string>Unsafe Splitting</string>
           </property>
          </widget>
         </item>

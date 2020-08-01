@@ -599,7 +599,7 @@ class window(QMainWindow, Ui_qencoder):
         if (self.spinBox_maxkfdist.value() > 0):
             vparams += " --kf-max-dist=" + str(self.spinBox_maxkfdist.value())
         if (self.comboBox_encoder.currentIndex() < 2):
-            vparams += " --tile-columns=2 --tile-rows=1 --cpu-used=" + str(self.spinBox_speed.value())
+            vparams += " --tile-columns=1 --tile-rows=0 --cpu-used=" + str(self.spinBox_speed.value())
         else:
             vparams += " --codec=vp8 --cpu-used=" + str(self.spinBox_speed.value())
 

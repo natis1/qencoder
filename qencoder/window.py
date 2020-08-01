@@ -1006,12 +1006,7 @@ class window(QMainWindow, Ui_qencoder):
         self.enableDisableGoodSplit()
         print("Enabled all buttons, returning program to normal")
 
-class EncodeWorker(QtCore.QObject):
-    updateStatusProgress = QtCore.pyqtSignal(str, int)
-    updateQueuedStatus = QtCore.pyqtSignal(str)
-    encodeFinished = QtCore.pyqtSignal(bool)
-    runningPav1n = False
-
+class AwfulWindowsWorkaround(Process):
     def __init__(self, argdata, window, shutdown):
         super().__init__()
         self.argdat = argdata
@@ -1027,7 +1022,7 @@ class EncodeWorker(QtCore.QObject):
         av1an.main_thread(self)
         print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
 
-    def internalRunner(self):
+    def run(self):
         print("Running")
         if (len(self.argdat) > 1):
             self.q.put([1, "Encoding video 1/" + str(len(self.argdat))])
@@ -1064,8 +1059,24 @@ class EncodeWorker(QtCore.QObject):
                     # If that doesn't work we can try shutting down the "other" way
                     os.system("shutdown now -h")
 
+
+
+class EncodeWorker(QtCore.QObject):
+    updateStatusProgress = QtCore.pyqtSignal(str, int)
+    updateQueuedStatus = QtCore.pyqtSignal(str)
+    encodeFinished = QtCore.pyqtSignal(bool)
+    runningPav1n = False
+
+    def __init__(self, argdata, window, shutdown):
+        super().__init__()
+        self.argdat = argdata
+        self.window = window
+        self.shutdown = shutdown
+        self.q = Queue()
+        self.istty = sys.stdin.isatty()
+
     def run(self):
-        t = Process(target = self.internalRunner)
+        t = AwfulWindowsWorkaround(self.argdat, self.window, self.shutdown)
         t.start()
         while (t.is_alive()):
             sleep(0.05)
@@ -1086,4 +1097,4 @@ class EncodeWorker(QtCore.QObject):
                     self.encodeFinished.emit(qdat[1])
             except Exception as e:
                 pass
-        self.q.put([0, "Encode completed!", 100])
+        self.updateStatusProgress.emit("Encode completed!", 100)

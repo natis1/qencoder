@@ -300,7 +300,7 @@
              <string>The final quality of your output video. If unsure, use 26.</string>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>3</number>
             </property>
             <item>
              <property name="text">
@@ -549,6 +549,9 @@
             <property name="maximum">
              <number>63</number>
             </property>
+            <property name="value">
+             <number>28</number>
+            </property>
            </widget>
           </item>
           <item row="0" column="4">
@@ -605,7 +608,7 @@
              <number>16</number>
             </property>
             <property name="value">
-             <number>2</number>
+             <number>4</number>
             </property>
            </widget>
           </item>
@@ -1416,6 +1419,9 @@
           <property name="text">
            <string>Unsafe Splitting</string>
           </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
@@ -1604,6 +1610,7 @@
     </property>
     <addaction name="actionOpen_Preset"/>
     <addaction name="actionSave_Preset"/>
+    <addaction name="actionReset_All_Settings"/>
    </widget>
    <widget class="QMenu" name="menuQueue">
     <property name="title">
@@ -1665,6 +1672,11 @@
   <action name="actionSave_Queue_As">
    <property name="text">
     <string>Save Queue As</string>
+   </property>
+  </action>
+  <action name="actionReset_All_Settings">
+   <property name="text">
+    <string>Reset All Settings</string>
    </property>
   </action>
  </widget>

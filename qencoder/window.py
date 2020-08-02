@@ -50,7 +50,6 @@ class window(QMainWindow, Ui_qencoder):
         self.outputFileChoose.clicked.connect(self.outputFileSelect)
         self.pushButton_vmafmodel.clicked.connect(self.inputVmafSelect)
         self.label_audio.setEnabled(0)
-        self.spinBox_quality.setValue(26)
         enable_slot = partial(self.audioEnableState, self.checkBox_audio)
         disable_slot = partial(self.audioDisableState, self.checkBox_audio)
         self.checkBox_audio.stateChanged.connect(lambda x: enable_slot() if x else disable_slot())
@@ -87,6 +86,7 @@ class window(QMainWindow, Ui_qencoder):
         self.actionOpen_Queue.triggered.connect(self.openQueueFrom)
         self.actionSave_Preset.triggered.connect(self.savePresetAs)
         self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
+        self.actionReset_All_Settings.triggered.connect(self.resetAllSettings)
         self.pushButton_save.setEnabled(0)
         self.pushButton_save.clicked.connect(self.saveToQueue)
         self.tabWidget.currentChanged[int].connect(self.setCustomText)
@@ -144,6 +144,10 @@ class window(QMainWindow, Ui_qencoder):
             print("Unable to load existing preset at: " + str(self.configpath) + ".")
             print("Possibly the first time you have run this, corrupted, or an older version")
             print("Do not report this")
+            self.enableCropping()
+            self.enableRescale()
+            self.enableDisableVmaf()
+            self.enableDisableGoodSplit()
         # self.speedButton.changeEvent.connect(self.setSpeed)
 
     def enableDisableGoodSplit(self):
@@ -226,6 +230,17 @@ class window(QMainWindow, Ui_qencoder):
 
     def updateQueuedStatus(self, queueString):
         self.label_queueprog.setText(queueString)
+
+    def resetAllSettings(self):
+        buttonReply = QMessageBox.question(self, 'Factory reset all settings?',
+                                                 "Clicking yes will cause the program to close and reset all settings. You may lose any existing encodes.", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if buttonReply != QMessageBox.Yes:
+            return
+        else:
+            os.remove(Path(self.configpath))
+            if not sys.platform.startswith('win'):
+                os.killpg(0, signal.SIGTERM)
+            sys.exit()
 
     def openPresetFrom(self):
         filename = QFileDialog.getOpenFileName(filter = "Qencoder encoder config (*.qec)")
@@ -733,7 +748,7 @@ class window(QMainWindow, Ui_qencoder):
                 'better_split' : self.checkBox_lessshitsplit.isChecked(), 'cpuused' : self.spinBox_speed.value(),
                 'unsafe_split' : self.checkBox_unsafeSplit.isChecked()
         }
-        args['temp'] = Path(str(os.path.splitext(self.outputPath.text())[0]) + "/temp_" + str(os.path.splitext(self.outputPath.text())[1]))
+        args['temp'] = Path(str(os.path.dirname(self.outputPath.text())) + "/temp_" + str(os.path.basename(self.outputPath.text())))
 
         if (self.checkBox_vmaf.isChecked()):
             args['vmaf_steps'] = self.spinBox_vmafsteps.value()
@@ -755,7 +770,12 @@ class window(QMainWindow, Ui_qencoder):
             args['br'] = self.spinBox_boost.value()
         if (self.comboBox_encoder.currentIndex() >= 1):
             args['encoder'] = 'vpx'
-            args['better_split'] = False
+
+        args['temp_str'] = str(args['temp']).replace("'", "'\"'\"'")
+        args['input_file_str'] = str(args['input_file']).replace("'", "'\"'\"'")
+        args['output_file_str'] = str(args['output_file']).replace("'", "'\"'\"'")
+        print(args['temp_str'])
+
         return args
 
     def encodeVideoQueue(self):
@@ -812,6 +832,7 @@ class window(QMainWindow, Ui_qencoder):
         self.actionOpen_Queue.setEnabled(0)
         self.actionSave_Preset.setEnabled(0)
         self.actionOpen_Preset.setEnabled(0)
+        self.actionReset_All_Settings.setEnabled(0)
         self.label_3.setEnabled(0)
         self.label_threads.setEnabled(0)
         self.spinBox_threads.setEnabled(0)
@@ -999,6 +1020,7 @@ class window(QMainWindow, Ui_qencoder):
         self.actionOpen_Queue.setEnabled(1)
         self.actionSave_Preset.setEnabled(1)
         self.actionOpen_Preset.setEnabled(1)
+        self.actionReset_All_Settings.setEnabled(1)
         self.checkBox_cropping.setEnabled(1)
         self.checkBox_rescale.setEnabled(1)
         self.checkBox_unsafeSplit.setEnabled(1)

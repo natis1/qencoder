@@ -58,9 +58,6 @@ def call_vmaf(source: Path, encoded: Path, n_threads, model, res):
     return fl
 
 
-
-
-
 def x264_probes(video: Path, ffmpeg: str, probe_framerate):
 
     if probe_framerate == 0:
@@ -197,7 +194,7 @@ def target_vmaf(source, args):
     vmaf_cq = []
 
     try:
-        x264_probes(source, args['ffmpeg'], args['probe_framerate'])
+        x264_probes(source, args['ffmpeg'], 0)
 
         skips, scores = early_skips(probe, source, frames, args)
         if skips:

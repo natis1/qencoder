@@ -760,7 +760,8 @@ class window(QMainWindow, Ui_qencoder):
                 'ffmpeg_cmd' : self.getFFMPEGParams(), 'min_split_dist' : self.spinBox_minsplit.value(),
                 'use_vmaf' : self.checkBox_vmaf.isChecked(), 'threads' : self.spinBox_threads.value(),
                 'better_split' : self.checkBox_lessshitsplit.isChecked(), 'cpuused' : self.spinBox_speed.value(),
-                'unsafe_split' : self.checkBox_unsafeSplit.isChecked()
+                'unsafe_split' : self.checkBox_unsafeSplit.isChecked(),
+                'rtenc' : self.checkBox_rtenc.isChecked()
         }
         args['temp'] = Path(str(os.path.dirname(self.outputPath.text())) + "/temp_" + str(os.path.basename(self.outputPath.text())))
 
@@ -783,12 +784,7 @@ class window(QMainWindow, Ui_qencoder):
             args['br'] = self.spinBox_boost.value()
         if (self.comboBox_encoder.currentIndex() >= 1):
             args['encoder'] = 'vpx'
-
-        args['temp_str'] = str(args['temp']).replace("'", "'\"'\"'")
-        args['input_file_str'] = str(args['input_file']).replace("'", "'\"'\"'")
-        args['output_file_str'] = str(args['output_file']).replace("'", "'\"'\"'")
-        print(args['temp_str'])
-
+        args['temp'] = Path(str((args['temp'])).replace("'", "_"))
         return args
 
     def encodeVideoQueue(self):
@@ -1125,4 +1121,3 @@ class EncodeWorker(QtCore.QObject):
                     self.encodeFinished.emit(qdat[1])
             except Exception as e:
                 pass
-        self.updateStatusProgress.emit("Encode completed!", 100)

@@ -137,7 +137,7 @@ def find_aom_keyframes(stat_file, key_freq_min):
 
     return keyframes_list
 
-def aom_keyframes(video_path, video_path_str, stat_file, stat_file_str, min_scene_len, ffmpeg_pipe, encoder, netThreads, video_params, qinterface):
+def aom_keyframes(video_path: Path, stat_file: Path, min_scene_len, ffmpeg_pipe, encoder, netThreads, video_params, rtenc, qinterface):
     """[Get frame numbers for splits from aomenc 1 pass stat file]
     """
     qinterface.q.put([0, "Analysis", 0])
@@ -147,21 +147,26 @@ def aom_keyframes(video_path, video_path_str, stat_file, stat_file_str, min_scen
     video.release()
 
     if total < 1:
-        total = frame_probe(video_path_str)
+        total = frame_probe(video_path)
 
     ffmpeg_pipe = ffmpeg_pipe[:-2]  # remove the ' |' at the end
 
-    f = f'ffmpeg -y -hide_banner -loglevel error -i \'{video_path_str}\' {ffmpeg_pipe}'
+    f1 = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", video_path.as_posix()]
+    f = f1 + ffmpeg_pipe.split()
     # removed -w -h from aomenc since ffmpeg filters can change it and it can be added into video_params
     # TODO(n9Mtq4): if an encoder other than aom is being used, video_params becomes the default so -w -h may be needed again
-    e = ""
-    if (encoder == "aom"):
-        e = f'aomenc --passes=2 --pass=1 {video_params} --fpf=\'{stat_file_str}\' -o {os.devnull} -'
+    e = []
+    if (encoder == "aom" and not rtenc):
+        e621 = ["aomenc", "--passes=2", "--pass=1"]
+        e2 = ["--fpf=" + stat_file.as_posix(), "-o", os.devnull, "-"]
+        e = e621 + video_params.split() + e2
     else:
-        e = f'aomenc --passes=2 --pass=1 --threads={str(netThreads)} --cpu-used=5 --end-usage=q --cq-level=40 --fpf=\'{stat_file_str}\' -o {os.devnull} -'
-
-    ffmpeg_pipe = subprocess.Popen(f, shell=True, stdout=PIPE, stderr=STDOUT)
-    pipe = subprocess.Popen(e, shell=True, stdin=ffmpeg_pipe.stdout, stdout=PIPE,
+        e = ["aomenc", "--passes=2", "--pass=1", "--threads=" + str(netThreads),
+            "--cpu-used=5", "--end-usage=q", "--cq-level=40", "--fpf=" + stat_file.as_posix(),
+            "-o", os.devnull, "-"]
+    print(e)
+    ffmpeg_pipe = subprocess.Popen(f, stdout=PIPE, stderr=STDOUT)
+    pipe = subprocess.Popen(e, stdin=ffmpeg_pipe.stdout, stdout=PIPE,
                             stderr=STDOUT, universal_newlines=True)
 
     encoder_history = deque(maxlen=20)

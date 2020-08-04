@@ -66,10 +66,10 @@ class Av1an:
         """Default logging function, write to file."""
         print(info)
         with open(self.d.get('logging'), 'a') as log:
-            log.write(time.strftime('%X') + ' ' + info)
+            log.write(time.strftime('%X') + ' ' + str(info))
 
-    def lineByLineCmd(self, cmd):
-        popen = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+    def lineByLineCmd(self, cmd: list):
+        popen = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
         for stderr_line in iter(popen.stderr.readline, ""):
             yield stderr_line
         popen.stderr.close()
@@ -77,13 +77,40 @@ class Av1an:
         if return_code:
             raise subprocess.CalledProcessError(return_code, cmd)
 
-    def call_cmd(self, cmd, capture_output=False):
+    def call_cmd(self, cmd: list, capture_output=False):
         """Calling system shell, if capture_output=True output string will be returned."""
         if capture_output:
-            return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+            return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
         with open(self.d.get('logging'), 'a') as log:
-            a = subprocess.run(cmd, shell=True, stdout=log, stderr=log)
+            a = subprocess.run(cmd, stdout=log, stderr=log)
+
+    def two_step_linebyline(self, cmd: list):
+        cm1 = []
+        cm2 = []
+        for i in range(len(cmd)):
+            if (cmd[i] == "|"):
+                cm1 = cmd[:i]
+                cm2 = cmd[(i + 1):]
+        cm1_pipe = subprocess.Popen(cm1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        popen = subprocess.Popen(cm2, stdin=cm1_pipe.stdout, stderr=subprocess.PIPE, universal_newlines=True)
+        for stderr_line in iter(popen.stderr.readline, ""):
+            yield stderr_line
+        popen.stderr.close()
+        return_code = popen.wait()
+        if return_code:
+            raise subprocess.CalledProcessError(return_code, cmd)
+
+    def two_step_cmd(self, cmd: list):
+        cm1 = []
+        cm2 = []
+        for i in range(len(cmd)):
+            if (cmd[i] == "|"):
+                cm1 = cmd[:i]
+                cm2 = cmd[(i + 1):]
+        cm1_pipe = subprocess.Popen(cm1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        pipe = subprocess.call(cm2, stdin=cm1_pipe.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
 
     def determine_resources(self):
         """Returns number of workers that machine can handle with selected encoder."""
@@ -129,7 +156,7 @@ class Av1an:
         return scenes
 
 
-    def scene_detect(self, video: Path, qinterface, videostr):
+    def scene_detect(self, video: Path, qinterface):
         """
         Running PySceneDetect detection on source video for segmenting.
         Optimal threshold settings 15-50
@@ -140,7 +167,7 @@ class Av1an:
             return ''
 
         try:
-            totalFrames = qencoder.ffmpeg.frame_probe(videostr)
+            totalFrames = qencoder.ffmpeg.frame_probe(video)
             # If stats file exists, load it.
             scenes = self.d.get('scenes')
             if scenes:
@@ -158,8 +185,7 @@ class Av1an:
             if (self.d['better_split']):
                 scenes = [0]
                 stat_file = self.d['temp'] / 'keyframes.log'
-                stat_file_str = self.d['temp_str'] + "/" + 'keyframes.log'
-                scene_list = qencoder.aomkf.aom_keyframes(self.d['input_file'], self.d['input_file_str'], stat_file, stat_file_str, self.d['min_split_dist'], self.d['ffmpeg_pipe'], self.d['encoder'], self.d['threads'] * self.d['workers'], self.d['video_params'], qinterface)
+                scene_list = qencoder.aomkf.aom_keyframes(self.d['input_file'], stat_file, self.d['min_split_dist'], self.d['ffmpeg_pipe'], self.d['encoder'], self.d['threads'] * self.d['workers'], self.d['video_params'], self.d['rtenc'], qinterface)
                 self.log(f'Found scenes: {len(scene_list)}. Original video has {len(kfScenes)} keyframes\n')
                 if (not self.d.get("unsafe_split")):
                     for scene in scene_list:
@@ -237,18 +263,18 @@ class Av1an:
             self.log("Not able to split video. Possibly corrupted.")
             raise Exception
 
-    def split(self, video, frames):
+    def split(self, video: Path, frames):
         """Spliting video by frame numbers, or just copying video."""
         if len(frames) == 1:
             self.log('Copying video for encode\n')
-            cmd = f'{self.FFMPEG} -i \'{video}\' -map_metadata -1 -an -c copy ' \
-                  f'-avoid_negative_ts 1 \'{self.d.get("temp_str") + "/split/0.mkv"}\''
+            cmd = self.FFMPEG.split() + ["-i", video, "-map_metadata", "-1", "-an", "-c", "copy",
+            "-avoid_negative_ts", "1", (self.d['temp'] / "split" / "0.mkv").as_posix()]
         else:
             self.log('Splitting video\n')
-            cmd = f'{self.FFMPEG} -i \'{video}\' -map_metadata -1 -an -f segment -segment_frames {frames} ' \
-                  f'-c copy -avoid_negative_ts 1 \'{self.d.get("temp_str") + "/split" + "/%04d.mkv"}\''
+            cmd = self.FFMPEG.split() + ["-i", video, "-map_metadata", "-1", "-an", "-f", "segment",
+                  "-segment_frames", frames, "-c", "copy", "-avoid_negative_ts", "1", (self.d['temp'] / "split" / "%04d.mkv").as_posix()]
         self.log(cmd)
-        a = self.call_cmd(cmd)
+        self.call_cmd(cmd)
 
     def get_video_queue(self, temp: Path, resume):
         """
@@ -290,33 +316,25 @@ class Av1an:
         if encoder == 'aom':
             enc = 'aomenc'
 
-        single_p = f'{enc} --passes=1 '
         two_p_1 = f'{enc} --passes=2 --pass=1'
         two_p_2 = f'{enc} --passes=2 --pass=2'
 
         if self.d.get('passes') == 1:
             pass_1_commands = []
             for index in range(len(input_files)):
-                p1IF0 = str(input_files[index][0]).replace("'", "'\"'\"'")
-                p1IF1 = str(input_files[index][1]).replace("'", "'\"'\"'")
-                suffix = os.path.splitext(input_files[index][1])[1]
-                pass_1_commands.append((f'-i \'{p1IF0}\' {self.d.get("ffmpeg_pipe")} ' +
-                f'  {single_p} {self.d.get("video_params")} -o \'{p1IF1 + ".ivf"}\' - ', index,
-                (input_files[index][0], input_files[index][1].with_suffix(str(suffix) + ".ivf"))))
+                pass_1_commands.append((["-i", input_files[index][0].as_posix()] + self.d['ffmpeg_pipe'].split() + [enc, "--passes=1"] + self.d['video_params'].split() + ["-o", input_files[index][1].with_suffix(".ivf").as_posix(), "-"], index, (input_files[index][0], input_files[index][1].with_suffix(".ivf"))))
             return pass_1_commands
 
         if self.d.get('passes') == 2:
             pass_2_commands = []
             for index in range(len(input_files)):
-                p1IF0 = str(input_files[index][0]).replace("'", "'\"'\"'")
-                p1IF1 = str(input_files[index][1]).replace("'", "'\"'\"'")
-                suffix = os.path.splitext(input_files[index][1])[1]
-                pass_2_commands.append((f'-i \'{p1IF0}\' {self.d.get("ffmpeg_pipe")}' +
-                    f' {two_p_1} {self.d.get("video_params")} --fpf=\'{p1IF0 + ".log"}\' -o {os.devnull} - ',
-                    f'-i \'{p1IF0}\' {self.d.get("ffmpeg_pipe")}' +
-                    f' {two_p_2} {self.d.get("video_params")} ' +
-                    f'--fpf=\'{p1IF0 + ".log"}\' -o \'{p1IF1 + ".ivf"}\' - ', index,
-                    (input_files[index][0], input_files[index][1].with_suffix(str(suffix) + ".ivf"))))
+                pass_2_commands.append( (["-i", input_files[index][0].as_posix()] +
+                    self.d['ffmpeg_pipe'].split() + [enc, "--passes=2", "--pass=1"] + self.d['video_params'].split() +
+                    ["--fpf=" + input_files[index][0].with_suffix(".log").as_posix(), "-o", input_files[index][1].with_suffix(".ivf").as_posix(), "-"],
+                    ["-i", input_files[index][0].as_posix()] +
+                    self.d['ffmpeg_pipe'].split() + [enc, "--passes=2", "--pass=2"] + self.d['video_params'].split() +
+                    ["--fpf=" + input_files[index][0].with_suffix(".log").as_posix(), "-o", input_files[index][1].with_suffix(".ivf").as_posix(), "-"],
+                    index, (input_files[index][0], input_files[index][1].with_suffix(".ivf"))))
             return pass_2_commands
 
     def compose_encoding_queue(self, files):
@@ -366,15 +384,27 @@ class Av1an:
         return brig_geom
 
     @staticmethod
-    def man_cq(command: str, cq: int):
+    def man_cq(command: list, cq: int):
         """Return command with new cq value"""
         mt = '--cq-level='
-        cmd = command[:command.find(mt) + 11] + str(cq) + command[command.find(mt) + 13:]
-        return cmd
+        for i in range(len(command)):
+            if (mt in command[i]):
+                command[i] = mt + str(cq)
+        return command
 
-    def boost(self, command: str, br_geom, new_cq=0):
+    @staticmethod
+    def get_cq(command: list):
+        mt = '--cq-level='
+        for i in range(len(command)):
+            if (mt in command[i]):
+                return int(command[i].replace(mt, ''))
+        self.log("ERROR: Unable to determine q")
+        return 32
+
+
+    def boost(self, command: list, br_geom, new_cq=0):
         """Based on average brightness of video decrease(boost) Quantize value for encoding."""
-        cq = self.man_cq(command, -1)
+        cq = self.get_cq(command)
         if not new_cq:
             if br_geom < 128:
                 new_cq = cq - round((128 - br_geom) / 128 * self.d.get('br'))
@@ -394,9 +424,7 @@ class Av1an:
         # Replace ffmpeg with aom because ffmpeg aom doesn't work with parameters properly.
         st_time = time.time()
         source, target = Path(commands[-1][0]), Path(commands[-1][1])
-        source_str = str(source).replace("'", "'\"'\"'")
-        target_str = str(target).replace("'", "'\"'\"'")
-        frame_probe_source = qencoder.ffmpeg.frame_probe(source_str)
+        frame_probe_source = qencoder.ffmpeg.frame_probe(source)
 
         if (self.d['use_vmaf']):
             tg_cq = qencoder.targetvmaf.target_vmaf(source, self.d)
@@ -431,28 +459,28 @@ class Av1an:
         startingFramecnt = self.frameCounterArray[frameCounterIndex]
 
         for i in range(len(commands[:-2])):
-            self.log(rf'{self.FFMPEG} {commands[i]}')
-            cmd = rf'{self.FFMPEG} {commands[i]}'
+            self.log(rf'{self.FFMPEG.split() + commands[i]}')
+            cmd = self.FFMPEG.split() + commands[i]
             if (i < (len(commands[:-2]) - 1)):
-                self.call_cmd(cmd)
+                self.two_step_cmd(cmd)
             else:
                 regexp = re.compile("frame\\s+\\d+/(\\d+)")
-                for line in self.lineByLineCmd(cmd):
+                for line in self.two_step_linebyline(cmd):
                     try:
                         framecnt = int(re.findall(regexp, str(line))[-1])
                         Av1an.frameCounterArray[frameCounterIndex] = framecnt + startingFramecnt
                     except:
                         pass
 
-        qencoder.ffmpeg.frame_check(source, source_str, target, target_str, self.d['temp'], False)
+        qencoder.ffmpeg.frame_check(source, target, self.d['temp'], False)
 
-        frame_probe = qencoder.ffmpeg.frame_probe(target_str)
+        frame_probe = qencoder.ffmpeg.frame_probe(target)
 
         enc_time = round(time.time() - st_time, 2)
 
         self.log(f'Done: {source.name} Fr: {frame_probe}\n'
                  f'Fps: {round(frame_probe / enc_time, 4)} Time: {enc_time} sec.\n')
-        return qencoder.ffmpeg.frame_probe(source_str)
+        return qencoder.ffmpeg.frame_probe(source)
 
     runningFrameCounter = False
     startingTime = datetime.datetime.now()
@@ -492,7 +520,7 @@ class Av1an:
         else:
             done = 0
             initial = 0
-            total = qencoder.ffmpeg.frame_probe(self.d.get('input_file_str'))
+            total = qencoder.ffmpeg.frame_probe(self.d.get('input_file'))
             d = {'total': total, 'done': {}}
             with open(done_path, 'w') as f:
                 json.dump(d, f)
@@ -534,13 +562,13 @@ class Av1an:
             self.set_logging()
 
             # Splitting video and sorting big-first
-            framenums = self.scene_detect(self.d.get('input_file'), qinterface, self.d.get('input_file_str'))
+            framenums = self.scene_detect(self.d.get('input_file'), qinterface)
             if (len(framenums) == 0):
                 return 1
-            self.split(self.d.get('input_file_str'), framenums)
+            self.split(self.d.get('input_file'), framenums)
 
             # Extracting audio
-            qencoder.ffmpeg.extract_audio(self.d.get('input_file_str'), self.d.get('temp_str'), self.d.get('audio_params'))
+            qencoder.ffmpeg.extract_audio(self.d.get('input_file'), self.d.get('temp'), self.d.get('audio_params'))
             return 0
 
     def video_encoding(self, qinterface):
@@ -561,7 +589,7 @@ class Av1an:
         commands = self.compose_encoding_queue(files)
         self.encoding_loop(commands, qinterface)
         self.runningFrameCounter = False
-        qencoder.ffmpeg.concatenate_video(self.d['temp_str'], self.d['temp'], self.d['output_file_str'])
+        qencoder.ffmpeg.concatenate_video(self.d['temp'], self.d['output_file'])
         sleep(0.2)
         if (not self.d.get('keep')):
             shutil.rmtree(self.d.get('temp'))
@@ -575,5 +603,7 @@ class Av1an:
         try:
             self.video_encoding(qinterface)
         except Exception as e:
-            self.q.put([2, 0])
+            traceback.print_exc()
+            qinterface.q.put([2, 0])
             sys.exit(1)
+        qinterface.updateStatusProgress.emit("Encode completed!", 100)

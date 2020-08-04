@@ -737,7 +737,7 @@ class Ui_qencoder(object):
         self.pushButton_vmafmodel.setText(_translate("qencoder", "Choose Model"))
         self.checkBox_shutdown.setStatusTip(_translate("qencoder", "May not work depending on OS/config, please test first with a short queue/video."))
         self.checkBox_shutdown.setText(_translate("qencoder", "Shutdown after completion"))
-        self.checkBox_lessshitsplit.setStatusTip(_translate("qencoder", "Do not use pyscenedetect at all. Still in testing but if you can test it, check this. It\'s totally worth it."))
+        self.checkBox_lessshitsplit.setStatusTip(_translate("qencoder", "Do not use pyscenedetect. Far slower, but less fail prone and better. Recommended for most encodes!"))
         self.checkBox_lessshitsplit.setText(_translate("qencoder", "Use First Pass For Splitting"))
         self.checkBox_unsafeSplit.setStatusTip(_translate("qencoder", "Allow splitting on frames that weren\'t keyframes in the original. might cause chunking errors."))
         self.checkBox_unsafeSplit.setText(_translate("qencoder", "Unsafe Splitting"))

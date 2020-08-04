@@ -1401,7 +1401,7 @@
         <item row="2" column="8" colspan="3">
          <widget class="QCheckBox" name="checkBox_lessshitsplit">
           <property name="statusTip">
-           <string>Do not use pyscenedetect at all. Still in testing but if you can test it, check this. It's totally worth it.</string>
+           <string>Do not use pyscenedetect. Far slower, but less fail prone and better. Recommended for most encodes!</string>
           </property>
           <property name="text">
            <string>Use First Pass For Splitting</string>

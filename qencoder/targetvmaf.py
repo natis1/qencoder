@@ -44,14 +44,10 @@ def call_vmaf(source: Path, encoded: Path, n_threads, model, res = "1920x1080"):
     # for proper vmaf calculation
     # Also it's required to use -r before both files of vmaf calculation to avoid errors
     fl = source.with_name(encoded.stem).with_suffix('.json').as_posix()
-    cmd = f'ffmpeg -loglevel error -hide_banner -r 60 -i \'{encoded.as_posix()}\' -r 60 -i  {source.as_posix()}  ' \
-          f'-filter_complex "[0:v]scale={res}:flags=spline:force_original_aspect_ratio=decrease[distorted];' \
-          f'[1:v]scale={res}:flags=spline:force_original_aspect_ratio=decrease[ref];' \
-          f'[distorted][ref]libvmaf=log_fmt="json":log_path={fl}{mod}{n_threads}" -f null - '
-    print(cmd)
+    cmd = ["ffmpeg", "-loglevel", "error", "-hide_banner", "-i", encoded.as_posix(), "-i", source.as_posix(), "-filter_complex", f'[0:v]scale={res}:flags=spline:force_original_aspect_ratio=decrease[distorted];[1:v]scale={res}:flags=spline:force_original_aspect_ratio=decrease[ref];[distorted][ref]libvmaf=log_fmt=json:log_path={fl}{mod}{n_threads}', "-f", "null", "-"]
 
     try:
-        c = subprocess.run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+        c = subprocess.run(cmd, stdout=PIPE, stderr=STDOUT)
         call = c.stdout
         # print(c.stdout.decode())
         if 'error' in call.decode().lower():
@@ -65,17 +61,11 @@ def call_vmaf(source: Path, encoded: Path, n_threads, model, res = "1920x1080"):
 
 
 def x264_probes(video: Path, ffmpeg: str, probe_framerate):
-
-    if probe_framerate == 0:
-        fr = ''
-    else:
-        fr = f'-r {probe_framerate}'
-
-    cmd = f' ffmpeg -y -hide_banner -loglevel error -i {video.as_posix()} ' \
-          f' {fr} -an {ffmpeg} -c:v libx264 -crf 0 {video.with_suffix(".mp4")}'
-
-    subprocess.run(cmd, shell=True)
-
+    cmd = ['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error', "-i", video.as_posix()]
+    if probe_framerate != 0:
+        cmd = cmd + ["-r", str(probe_framerate)]
+    cmd = cmd + ["-an"] + ffmpeg.split() + ["-c:v", "libx264", "-crf", "0", video.with_suffix(".mp4").as_posix()]
+    subprocess.run(cmd)
 
 def gen_probes_names(probe, q):
     """Make name of vmaf probe
@@ -87,13 +77,12 @@ def probe_cmd(probe, q, ffmpeg_pipe, encoder, threads):
     """Generate and return commands for probes at set Q values
     """
     pipe = f'ffmpeg -y -hide_banner -loglevel error -i {probe} {ffmpeg_pipe}'
+    cmd1 = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", probe.as_posix()] + ffmpeg_pipe.split()
 
     if encoder == 'aom':
-        params = " aomenc  -q --passes=1 --threads=" + str(threads) + " --end-usage=q --cpu-used=6 --cq-level="
-        cmd = f'{pipe} {params}{q} -o {probe.with_name(f"v_{q}{probe.stem}")}.ivf - '
+        cmd = cmd1 + ["aomenc", "-q", "--passes=1", "--threads=" + str(threads), "--end-usage=q", "--cpu-used=6", "--cq-level=" + str(q), "-o", probe.with_name(f"v_{q}{probe.stem}").with_suffix(".ivf").as_posix(), "-"]
     else:
-        params = "vpxenc --passes=1 --pass=1 --codec=vp9 --threads=" + str(threads) + " --cpu-used=9 --end-usage=q --cq-level="
-        cmd = f'{pipe} {params}{q} -o {probe.with_name(f"v_{q}{probe.stem}")}.ivf - '
+        cmd = cmd1 + ["vpxenc", "--codec=vp9", "--passes=1", "--pass=1", "--threads=" + str(threads), "--end-usage=q", "--cpu-used=9", "--cq-level=" + str(q), "-o", probe.with_name(f"v_{q}{probe.stem}").with_suffix(".ivf").as_posix(), "-"]
     return cmd
 
 
@@ -121,10 +110,21 @@ def interpolate_data(vmaf_cq: list, vmaf_target):
     vmaf_target_cq = min(tl, key=lambda x: abs(x[1] - vmaf_target))
     return vmaf_target_cq, tl, f, xnew
 
+
+def two_step_cmd(cmd: list):
+    cm1 = []
+    cm2 = []
+    for i in range(len(cmd)):
+        if (cmd[i] == "|"):
+            cm1 = cmd[:i]
+            cm2 = cmd[(i + 1):]
+    cm1_pipe = subprocess.Popen(cm1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pipe = subprocess.call(cm2, stdin=cm1_pipe.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
 def vmaf_probe(probe, q, args):
 
     cmd = probe_cmd(probe, q, args['ffmpeg_pipe'], args['encoder'], args['threads'])
-    c = subprocess.run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+    two_step_cmd(cmd)
     #make_pipes(cmd).wait()
     # TODO: Add graphics here
 

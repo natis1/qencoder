@@ -9,10 +9,10 @@ import re
 import sys
 
 
-def frame_probe(source):
+def frame_probe(source: Path):
     """Get frame count."""
-    cmd = "ffmpeg -hide_banner -i '" + str(source) + "' -map 0:v:0 -f null -"
-    r = subprocess.run(cmd, shell = True, stdout=PIPE, stderr=PIPE)
+    cmd = ["ffmpeg", "-hide_banner", "-i", source.as_posix(), "-map", "0:v:0", "-f", "null", "-"]
+    r = subprocess.run(cmd, stdout=PIPE, stderr=PIPE)
     matches = re.findall(r"frame=\s*([0-9]+)\s", r.stderr.decode("utf-8") + r.stdout.decode("utf-8"))
     return int(matches[-1])
 
@@ -56,16 +56,16 @@ def write_progress_file(file, chunk, frames):
         json.dump(d, f)
 
 
-def frame_check(source: Path, source_str, encoded: Path, encoded_str, temp: Path, nocheck):
+def frame_check(source: Path, encoded: Path, temp: Path, nocheck):
     """Checking if source and encoded video frame count match."""
     try:
         status_file = Path(temp / 'done.json')
 
         if nocheck:
-            s1 = frame_probe(source_str)
+            s1 = frame_probe(source)
             write_progress_file(status_file, source, s1)
         else:
-            s1, s2 = [frame_probe(i) for i in (source_str, encoded_str)]
+            s1, s2 = [frame_probe(i) for i in (source, encoded)]
             if s1 == s2:
                 write_progress_file(status_file, source, s1)
             else:
@@ -82,26 +82,26 @@ def frame_check(source: Path, source_str, encoded: Path, encoded_str, temp: Path
             doneFileLock.release()
 
 
-def concatenate_video(temp, temp_folder, output):
+def concatenate_video(temp: Path, output: Path):
     """With FFMPEG concatenate encoded segments into final file."""
 
-    with open(f'{temp_folder / "concat" }', 'w') as f:
+    with open(f'{temp / "concat" }', 'w') as f:
 
-        encode_files = sorted((temp_folder / 'encode').iterdir())
+        encode_files = sorted((temp / 'encode').iterdir())
         # Replace all the ' with '/'' so ffmpeg can read the path correctly
         f.writelines("file '" + str(file.absolute()).replace('\'','\'\\\'\'') + "'\n" for file in encode_files)
 
     # Add the audio file if one was extracted from the input
-    audio_file = temp + "/audio.mkv"
-    audio_actualfile = temp_folder / "audio.mkv"
-    if audio_actualfile.exists():
-        audio = f'-i \'{audio_file}\' -c:a copy -map 1'
+    audio_file = temp / "audio.mkv"
+    if audio_file.exists():
+        audio = ["-i", audio_file.as_posix(), "-c:a", "copy", "-map", "1"]
     else:
-        audio = ''
+        audio = []
 
-    cmd = f' ffmpeg -y -hide_banner -loglevel error -f concat -safe 0 -i \'{temp + "/concat"}\' ' \
-        f'{audio} -c copy -map 0  -y \'{output}\''
-    concat = subprocess.run(cmd, shell=True, stdout=PIPE, stderr=STDOUT).stdout
+    cmd1 = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", temp / "concat"]
+    cmd2 = ["-c", "copy", "-map", "0", "-y", output.as_posix()]
+    cmd = cmd1 + audio + cmd2
+    concat = subprocess.run(cmd, stdout=PIPE, stderr=STDOUT).stdout
 
 
     if len(concat) > 0:
@@ -109,16 +109,17 @@ def concatenate_video(temp, temp_folder, output):
         raise Exception
 
 
-def extract_audio(input_vid, temp, audio_params):
+def extract_audio(input_vid: Path, temp: Path, audio_params):
     """Extracting audio from source, transcoding if needed."""
-    audio_file = temp + "/audio.mkv"
+    audio_file = temp / "audio.mkv"
 
     # Checking is source have audio track
-    check = fr' ffmpeg -y -hide_banner -loglevel error -ss 0 -i \'{input_vid}\' -t 0 -vn -c:a copy -f null -'
-    is_audio_here = len(subprocess.run(check, shell=True, stdout=PIPE, stderr=STDOUT).stdout) == 0
+    check = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+    "-ss", "0", "-i", input_vid.as_posix(), "-t", "0", "-vn", "-c:a", "copy", "-f", "null", "-"]
+    is_audio_here = len(subprocess.run(check, stdout=PIPE, stderr=STDOUT).stdout) == 0
 
     # If source have audio track - process it
     if is_audio_here:
-        cmd = f'ffmpeg -y -hide_banner -loglevel error -i \'{input_vid}\' -vn ' \
-              f'{audio_params} {audio_file}'
-        subprocess.run(cmd, shell=True)
+        cmd1 = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", input_vid.as_posix(), "-vn"]
+        cmd = cmd1 + audio_params.split() + [audio_file.as_posix()]
+        subprocess.run(cmd)

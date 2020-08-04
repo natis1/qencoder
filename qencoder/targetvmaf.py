@@ -11,6 +11,7 @@ from math import isnan
 from pathlib import Path
 from subprocess import PIPE, STDOUT
 import json
+import traceback
 
 def read_vmaf_json(file, percentile):
     """Reads vmaf file with vmaf scores in it and return N percentile score from it.
@@ -27,7 +28,7 @@ def read_vmaf_json(file, percentile):
     return perc
 
 
-def call_vmaf(source: Path, encoded: Path, n_threads, model, res):
+def call_vmaf(source: Path, encoded: Path, n_threads, model, res = "1920x1080"):
 
     if model:
         mod = f":model_path={model}"
@@ -43,17 +44,22 @@ def call_vmaf(source: Path, encoded: Path, n_threads, model, res):
     # for proper vmaf calculation
     # Also it's required to use -r before both files of vmaf calculation to avoid errors
     fl = source.with_name(encoded.stem).with_suffix('.json').as_posix()
-    cmd = f'ffmpeg -loglevel error -hide_banner -r 60 -i {encoded.as_posix()} -r 60 -i  {source.as_posix()}  ' \
+    cmd = f'ffmpeg -loglevel error -hide_banner -r 60 -i \'{encoded.as_posix()}\' -r 60 -i  {source.as_posix()}  ' \
           f'-filter_complex "[0:v]scale={res}:flags=spline:force_original_aspect_ratio=decrease[distorted];' \
           f'[1:v]scale={res}:flags=spline:force_original_aspect_ratio=decrease[ref];' \
           f'[distorted][ref]libvmaf=log_fmt="json":log_path={fl}{mod}{n_threads}" -f null - '
+    print(cmd)
 
-    c = subprocess.run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
-    call = c.stdout
-    # print(c.stdout.decode())
-    if 'error' in call.decode().lower():
-        print('\n\nERROR IN VMAF CALCULATION\n\n',call.decode())
-        terminate()
+    try:
+        c = subprocess.run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+        call = c.stdout
+        # print(c.stdout.decode())
+        if 'error' in call.decode().lower():
+            print('\n\nERROR IN VMAF CALCULATION\n\n',call.decode())
+            sys.exit(1)
+    except Exception as e:
+        print("Unable to run target vmaf cmd. This might be because lack of support in your ffmpeg")
+        sys.exit(1)
 
     return fl
 
@@ -118,6 +124,7 @@ def interpolate_data(vmaf_cq: list, vmaf_target):
 def vmaf_probe(probe, q, args):
 
     cmd = probe_cmd(probe, q, args['ffmpeg_pipe'], args['encoder'], args['threads'])
+    c = subprocess.run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
     #make_pipes(cmd).wait()
     # TODO: Add graphics here
 
@@ -136,22 +143,22 @@ def early_skips(probe, source, frames, args):
         score = vmaf_probe(probe, cq[i], args)
         scores.append((score, cq[i]))
         # Early Skip on big CQ
-        if i == 0 and round(score) > args.vmaf_target:
-            log(f"File: {source.stem}, Fr: {frames}\n" \
+        if i == 0 and round(score) > args['vmaf_target']:
+            print(f"File: {source.stem}, Fr: {frames}\n" \
             f"Q: {sorted([x[1] for x in scores])}, Early Skip High CQ\n" \
             f"Vmaf: {sorted([x[0] for x in scores], reverse=True)}\n" \
-            f"Target Q: {args.max_q} Vmaf: {score}\n\n")
+            f"Target Q: {args['max_cq']} Vmaf: {score}\n\n")
 
-            return True, args.max_q
+            return True, args['max_cq']
 
         # Early Skip on small CQ
-        if i == 1 and round(score) < args.vmaf_target:
-            log(f"File: {source.stem}, Fr: {frames}\n" \
+        if i == 1 and round(score) < args['vmaf_target']:
+            print(f"File: {source.stem}, Fr: {frames}\n" \
                 f"Q: {sorted([x[1] for x in scores])}, Early Skip Low CQ\n" \
                 f"Vmaf: {sorted([x[0] for x in scores], reverse=True)}\n" \
-                f"Target Q: {args.min_q} Vmaf: {score}\n\n")
+                f"Target Q: {args['min_cq']} Vmaf: {score}\n\n")
 
-            return True, args.min_q
+            return True, args['min_cq']
 
     return False, scores
 
@@ -174,27 +181,27 @@ def target_vmaf_search(probe, source, frames, args):
     score = 0
     last_q = args['min_cq']
     next_q = args['max_cq']
-    for _ in range(args.vmaf_steps - 2 ):
+    for _ in range(args['vmaf_steps'] - 2 ):
 
         new_point= (last_q + next_q) // 2
         last_q = new_point
 
         q_list.append(new_point)
         score = vmaf_probe(probe, new_point, args)
-        next_q = get_closest(q_list, last_q, positive=score >= args.vmaf_target)
+        next_q = get_closest(q_list, last_q, positive=score >= args['vmaf_target'])
         vmaf_cq.append((score, new_point))
 
     return vmaf_cq
 
 
-def target_vmaf(source, args):
+def target_vmaf(source: Path, args):
 
     frames = frame_probe(source)
     probe = source.with_suffix(".mp4")
     vmaf_cq = []
 
     try:
-        x264_probes(source, args['ffmpeg'], 0)
+        x264_probes(source, args['ffmpeg_cmd'], 4)
 
         skips, scores = early_skips(probe, source, frames, args)
         if skips:
@@ -208,7 +215,7 @@ def target_vmaf(source, args):
 
         q, q_vmaf = get_target_q(vmaf_cq, args['vmaf_target'] )
 
-        log(f'File: {source.stem}, Fr: {frames}\n' \
+        print(f'File: {source.stem}, Fr: {frames}\n' \
             f'Q: {sorted([x[1] for x in vmaf_cq])}\n' \
             f'Vmaf: {sorted([x[0] for x in vmaf_cq], reverse=True)}\n' \
             f'Target Q: {q} Vmaf: {q_vmaf}\n\n')
@@ -218,4 +225,5 @@ def target_vmaf(source, args):
     except Exception as e:
         _, _, exc_tb = sys.exc_info()
         print(f'Error in vmaf_target {e} \nAt line {exc_tb.tb_lineno}')
+        traceback.print_exc()
         raise Exception

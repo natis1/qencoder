@@ -15,6 +15,7 @@ import statistics
 import threading
 import concurrent
 import datetime
+import traceback
 import qencoder.ffmpeg
 import qencoder.targetvmaf
 import qencoder.aomkf
@@ -23,9 +24,12 @@ from ast import literal_eval
 from psutil import virtual_memory
 from pathlib import Path
 from scipy import interpolate
-from scenedetect.video_manager import VideoManager
-from scenedetect.scene_manager import SceneManager
-from scenedetect.detectors import ContentDetector
+try:
+    from scenedetect.video_manager import VideoManager
+    from scenedetect.scene_manager import SceneManager
+    from scenedetect.detectors import ContentDetector
+except ImportError as e:
+    print("Unable to find pyscenedetect, disabling")
 import concurrent.futures
 from math import isnan
 
@@ -395,7 +399,7 @@ class Av1an:
         frame_probe_source = qencoder.ffmpeg.frame_probe(source_str)
 
         if (self.d['use_vmaf']):
-            tg_cq, tg_vf = qencoder.targetvmaf.target_vmaf(source, self.d)
+            tg_cq = qencoder.targetvmaf.target_vmaf(source, self.d)
 
             cm1 = self.man_cq(commands[0], tg_cq)
 
@@ -513,6 +517,7 @@ class Av1an:
                     data = future.result()
                 except Exception as exc:
                     self.log(f'Encoding error: {exc}')
+                    traceback.print_exc()
                     sys.exit()
 
     def setup_routine(self, qinterface):
@@ -567,4 +572,8 @@ class Av1an:
         # Start time
         tm = time.time()
         # Parse initial arguments
-        self.video_encoding(qinterface)
+        try:
+            self.video_encoding(qinterface)
+        except Exception as e:
+            self.q.put([2, 0])
+            sys.exit(1)

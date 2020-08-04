@@ -21,6 +21,12 @@ import threading
 
 import pickle
 
+canLoadScenedetect = 1
+try:
+    from scenedetect.video_manager import VideoManager
+except ImportError as e:
+    canLoadScenedetect = 0
+
 # baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
 
 
@@ -44,6 +50,8 @@ class window(QMainWindow, Ui_qencoder):
     configpath = os.path.join(confighome, 'qencoder.qec')
 
     def __init__(self, *args, **kwargs):
+        global canLoadScenedetect
+        self.canLoadScenedetect = canLoadScenedetect
         QMainWindow.__init__(self, *args, **kwargs)
         self.setupUi(self)
         self.inputFileChoose.clicked.connect(self.inputFileSelect)
@@ -154,6 +162,12 @@ class window(QMainWindow, Ui_qencoder):
         state = self.checkBox_lessshitsplit.isChecked()
         self.label_split.setEnabled(not state)
         self.spinBox_split.setEnabled(not state)
+        if (self.canLoadScenedetect == 0):
+            self.checkBox_lessshitsplit.setEnabled(0)
+            self.checkBox_lessshitsplit.setChecked(1)
+            self.label_split.setEnabled(0)
+            self.spinBox_split.setEnabled(0)
+
 
     def enableDisableVmaf(self):
         state = self.checkBox_vmaf.isChecked()
@@ -216,8 +230,8 @@ class window(QMainWindow, Ui_qencoder):
         self.currentlyRunning = 0
         if success:
             self.pushButton.setEnabled(1)
-            self.pushButton.setText("Finalize")
             self.label_status.setText("Encoding complete!")
+            self.finalizeEncode()
         else:
             self.pushButton.setEnabled(1)
             self.pushButton.setStyleSheet("color: red; background-color: white")
@@ -750,12 +764,11 @@ class window(QMainWindow, Ui_qencoder):
         }
         args['temp'] = Path(str(os.path.dirname(self.outputPath.text())) + "/temp_" + str(os.path.basename(self.outputPath.text())))
 
-        if (self.checkBox_vmaf.isChecked()):
-            args['vmaf_steps'] = self.spinBox_vmafsteps.value()
-            args['min_cq'] = self.spinBox_minq.value()
-            args['max_cq'] = self.spinBox_maxq.value()
-            args['vmaf_target'] = self.doubleSpinBox_vmaf.value()
-            args['vmaf_path'] = self.label_vmafpath.text()
+        args['vmaf_steps'] = self.spinBox_vmafsteps.value()
+        args['min_cq'] = self.spinBox_minq.value()
+        args['max_cq'] = self.spinBox_maxq.value()
+        args['vmaf_target'] = self.doubleSpinBox_vmaf.value()
+        args['vmaf_path'] = self.label_vmafpath.text()
 
         if (self.checkBox_minsplit.isChecked()):
             args['min_split_dist'] = 0
@@ -1097,7 +1110,7 @@ class EncodeWorker(QtCore.QObject):
             sleep(0.05)
             if(self.window.killFlag):
                 print("Killing all children processes. Hopefully this works.")
-                parent = psutil.Process(t.pid)
+                parent = psutil.Process(os.getpid())
                 for child in parent.children(recursive=True):  # or parent.children() for recursive=False
                     child.kill()
                 parent.kill()

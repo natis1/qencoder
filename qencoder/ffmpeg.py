@@ -11,7 +11,7 @@ import sys
 
 def frame_probe(source):
     """Get frame count."""
-    cmd = "ffmpeg -hide_banner -i '" + source + "' -map 0:v:0 -f null -"
+    cmd = "ffmpeg -hide_banner -i '" + str(source) + "' -map 0:v:0 -f null -"
     r = subprocess.run(cmd, shell = True, stdout=PIPE, stderr=PIPE)
     matches = re.findall(r"frame=\s*([0-9]+)\s", r.stderr.decode("utf-8") + r.stdout.decode("utf-8"))
     return int(matches[-1])

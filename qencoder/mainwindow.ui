@@ -77,15 +77,15 @@
     </item>
     <item row="0" column="0" colspan="4">
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Source</string>
+         <string>Output</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="inputPath">
+      <item row="1" column="1">
+       <widget class="QLabel" name="outputPath">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -103,15 +103,8 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Output</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLabel" name="outputPath">
+      <item row="0" column="1">
+       <widget class="QLabel" name="inputPath">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -152,6 +145,13 @@
        <widget class="QPushButton" name="outputFileChoose">
         <property name="text">
          <string>Save to...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Source</string>
         </property>
        </widget>
       </item>
@@ -1230,7 +1230,7 @@
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBox_vmaf">
           <property name="statusTip">
-           <string>Encode for specific visual fidelity. Requires crf and darkboost disabled. Increases encode time.</string>
+           <string>Encode for specific visual fidelity. Requires crf enabled and darkboost disabled. Increases encode time.</string>
           </property>
           <property name="text">
            <string>Target VMAF</string>

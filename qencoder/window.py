@@ -446,14 +446,14 @@ class window(QMainWindow, Ui_qencoder):
             self.label_2.setEnabled(0)
         else:
             self.comboBox_colorspace.setEnabled(1)
-            if (self.comboBox_colorspace.currentIndex() == 5):
+            if (self.comboBox_colorspace.currentIndex() == 4):
                 self.lineEdit_colordata.setEnabled(1)
             self.label_2.setEnabled(1)
 
     def changeColorspace(self, newspace):
         colorInfo = self.getColorData()
         self.lineEdit_colordata.setText(colorInfo)
-        if (newspace == 5):
+        if (newspace == 4):
             self.lineEdit_colordata.setEnabled(1)
         else:
             self.lineEdit_colordata.setEnabled(0)

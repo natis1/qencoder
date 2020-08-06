@@ -14,7 +14,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="qencoder",
-    version="1.5.4",
+    version="1.5.5",
     author="Eli Stone",
     author_email="eli.stonium@gmail.com",
     description="Qt graphical interface for encoding",

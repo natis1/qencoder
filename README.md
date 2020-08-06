@@ -1,12 +1,14 @@
-# Finally, a qt encoder
+# Cross platform video encoding gui
 
-qencoder is the gui you never knew you needed. Using scene-based splitting, qencoder gives massive benefits to speed and quality of existing codecs. qencoder is a ui inspired by, and borrowing much code from the venerable console tool [Av1an](https://github.com/master-of-zen/Av1an/) by Master of Zen. Make the perfect video encodes with qencoder! 
+### Encoding video is slow. qencoder makes it fast!
+![Coreeeees](/screenshots/cores.png)
+
+The most efficient av1 and vp9/vp8 encoders do not scale very well across lots of cpu cores. By intelligently splitting the video into multiple chunks, qencoder allows you encode better videos than with svt in much less time. qencoder is inspired by and uses code from [Av1an](https://github.com/master-of-zen/Av1an/), while delivering a more familiar gui experience for Windows and Linux.
 
 ### Simple and easy to use
 ![Simple view](/screenshots/simple.png)
 
 You don't need to have a deep understanding of how video works to take advantage of qencoder. With extremely easy to use and powerful presets, qencoder is for everyone.
-
 
 ### Powerful for those who need it
 ![Advanced view](/screenshots/complex.png)
@@ -25,13 +27,11 @@ Finally, it supports minimal splitting, the ideal mode for 2 pass vbr encodes. T
 
 qencoder is the first gui av1 encoder to support proper video queueing. Setup the perfect encode for your video and add it to a queue. Repeat for as many videos as you want to encode. When you are done, save the queue to a file for later, or run it now with the encode button. If any videos are in the queue, qencoder will encode them.
 
-### The optimal encodes
+### Per Scene Encoding
 
-qencoder takes advantage of the most modern and advanced free formats. Including:
+![Target vmaf](/screenshots/vmaf.png)
 
-aomenc's av1, a video codec so efficient it can achieve better than dvd quality in less space than a CD. Aomenc paired with a splitting tool like qencoder is the fastest and most efficient way to encode av1, better than even SVT or rav1e.
-
-Libvpx vp9/8. Video codecs which have become standard across the internet in the .webm video format, as well as commonly being used for game cutscenes.
+Per **SCENE** encoding, analogous to automatic per title encoding, lets you optimize your encodes to save space. Each scene can be encoded to target a specific vmaf (perceptual visual quality). Don't pay a cloud company to optimize your encodes, qencoder lets you do it all in house.
 
 ### Free codecs
 

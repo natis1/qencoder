@@ -137,6 +137,15 @@ def find_aom_keyframes(stat_file, key_freq_min):
 
     return keyframes_list
 
+def set_threads(command: list, val: int):
+    """Return command with new val value"""
+    print("Setting threads to: " + str(val) + " for analysis.")
+    tr = '--threads='
+    for i in range(len(command)):
+        if (tr in command[i]):
+            command[i] = tr + str(val)
+    return command
+
 def aom_keyframes(video_path: Path, stat_file: Path, min_scene_len, ffmpeg_pipe, encoder, netThreads, video_params, rtenc, qinterface):
     """[Get frame numbers for splits from aomenc 1 pass stat file]
     """
@@ -160,11 +169,11 @@ def aom_keyframes(video_path: Path, stat_file: Path, min_scene_len, ffmpeg_pipe,
         e621 = ["aomenc", "--passes=2", "--pass=1"]
         e2 = ["--fpf=" + stat_file.as_posix(), "-o", os.devnull, "-"]
         e = e621 + video_params.split() + e2
+        e = set_threads(e, netThreads)
     else:
         e = ["aomenc", "--passes=2", "--pass=1", "--threads=" + str(netThreads),
             "--cpu-used=5", "--end-usage=q", "--cq-level=40", "--fpf=" + stat_file.as_posix(),
             "-o", os.devnull, "-"]
-    print(e)
     ffmpeg_pipe = subprocess.Popen(f, stdout=PIPE, stderr=STDOUT)
     pipe = subprocess.Popen(e, stdin=ffmpeg_pipe.stdout, stdout=PIPE,
                             stderr=STDOUT, universal_newlines=True)

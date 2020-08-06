@@ -93,7 +93,7 @@ class Av1an:
                 cm1 = cmd[:i]
                 cm2 = cmd[(i + 1):]
         cm1_pipe = subprocess.Popen(cm1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        popen = subprocess.Popen(cm2, stdin=cm1_pipe.stdout, stderr=subprocess.PIPE, universal_newlines=True)
+        popen = subprocess.Popen(cm2, stdin=cm1_pipe.stdout, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, universal_newlines=True)
         for stderr_line in iter(popen.stderr.readline, ""):
             yield stderr_line
         popen.stderr.close()
@@ -109,8 +109,7 @@ class Av1an:
                 cm1 = cmd[:i]
                 cm2 = cmd[(i + 1):]
         cm1_pipe = subprocess.Popen(cm1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        pipe = subprocess.call(cm2, stdin=cm1_pipe.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
+        pipe = subprocess.run(cm2, stdin=cm1_pipe.stdout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def determine_resources(self):
         """Returns number of workers that machine can handle with selected encoder."""
@@ -162,12 +161,19 @@ class Av1an:
         Optimal threshold settings 15-50
         """
         # Skip scene detection if the user choose to
+        if self.d.get('workers') == 0:
+            self.determine_resources()
+
         if self.d.get('scenes') == '0':
             self.log('Skipping scene detection\n')
             return ''
 
         try:
-            totalFrames = qencoder.ffmpeg.frame_probe(video)
+            videoFram = cv2.VideoCapture(video.as_posix())
+            totalFrames = int(videoFram.get(cv2.CAP_PROP_FRAME_COUNT))
+            videoFram.release()
+            if totalFrames < 1:
+                totalFrames = qencoder.ffmpeg.frame_probe(video)
             # If stats file exists, load it.
             scenes = self.d.get('scenes')
             if scenes:
@@ -553,7 +559,7 @@ class Av1an:
         All pre encoding routine.
         Scene detection, splitting, audio extraction
         """
-        if self.d.get('resume') and (self.d.get('temp') / 'done.txt').exists():
+        if self.d.get('resume') and (self.d.get('temp') / 'done.json').exists():
             self.set_logging()
             return 0
 
@@ -574,10 +580,6 @@ class Av1an:
     def video_encoding(self, qinterface):
         """Encoding video on local machine."""
         # Determine resources if workers don't set
-        if self.d.get('workers') != 0:
-            self.d['workers'] = self.d.get('workers')
-        else:
-            self.determine_resources()
 
         code = self.setup_routine(qinterface)
         if (code != 0):

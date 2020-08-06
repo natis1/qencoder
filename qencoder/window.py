@@ -1109,7 +1109,6 @@ class EncodeWorker(QtCore.QObject):
                 parent = psutil.Process(os.getpid())
                 for child in parent.children(recursive=True):  # or parent.children() for recursive=False
                     child.kill()
-                parent.kill()
                 t.join()
             try:
                 qdat = self.q.get(False)

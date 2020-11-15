@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # This Python file uses the following encoding: utf-8
+import glob
 import shlex
 
 from PyQt5 import QtCore
@@ -108,6 +109,7 @@ class window(QMainWindow, Ui_qencoder):
         self.actionSave_Preset.triggered.connect(self.savePresetAs)
         self.actionOpen_Preset.triggered.connect(self.openPresetFrom)
         self.actionReset_All_Settings.triggered.connect(self.resetAllSettings)
+        self.actionAdd_folder_to_queue.triggered.connect(self.addFolderToQueue)
         self.pushButton_save.setEnabled(0)
         self.pushButton_save.clicked.connect(self.saveToQueue)
         self.tabWidget.currentChanged[int].connect(self.setCustomText)
@@ -216,6 +218,31 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_cropleft.setEnabled(state)
         self.spinBox_cropright.setEnabled(state)
 
+    def addFolderToQueue(self):
+        buttonReply = QMessageBox.question(self, 'Add folder to queue?',
+                                           "The folder chosen will have all detected video files in it added to the queue using the current settings. Will output to enc_[filename] in the same folder. Make sure your settings are correct before doing this. Continue?",
+                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if buttonReply != QMessageBox.Yes:
+            return
+        else:
+            foldername = QFileDialog.getExistingDirectory()
+            types = ('*.mkv', '*.mp4', '*.webm', '*.y4m', '*.avi')
+            files_grabbed = []
+            for files in types:
+                files_grabbed.extend(glob.glob(foldername + "/" + files))
+            for fil in files_grabbed:
+                self.inputPath.setText(fil)
+                dirn, fname = os.path.split(fil)
+                fname = "enc_" + fname
+                if not fname.endswith(".mkv") or not fname.endswith(".webm"):
+                    fname = fname + ".mkv"
+                self.outputPath.setText(os.path.join(dirn, fname))
+                self.saveToQueue()
+            self.inputPath.setText("")
+            self.outputPath.setText("")
+            self.pushButton.setEnabled(False)
+            self.tabWidget.setCurrentIndex(5)
+
     def editCurrentQueue(self):
         if (self.listWidget.currentRow() <= -1):
             return
@@ -226,7 +253,7 @@ class window(QMainWindow, Ui_qencoder):
             return
         else:
             self.setFromPresetDict(self.encodeList[self.listWidget.currentRow()][1])
-            self.inputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['input_file']))
+            self.inputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['input']))
             self.outputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['output_file']))
             self.pushButton.setEnabled(1)
             self.pushButton_save.setEnabled(1)
@@ -380,7 +407,7 @@ class window(QMainWindow, Ui_qencoder):
     def redrawQueueList(self):
         self.listWidget.clear()
         for i in self.encodeList:
-            inputFile = i[0]['input_file'].parts[-1]
+            inputFile = i[0]['input'].parts[-1]
             outputFile = i[0]['output_file'].parts[-1]
             finalString = inputFile + " -> " + outputFile
             if (i[1]['brmode']):
@@ -1071,7 +1098,7 @@ class EncodeWorker(QtCore.QObject):
         c.subscribe("newframes", self.newFrames.emit, "0")
         c.subscribe("terminate", self.encodeFinished.emit, "0")
         backend = run(dictargs, c)
-        print("\n\nEncode completed for " + str(dictargs['input_file']) + " -> " + str(dictargs['output_file']))
+        print("\n\nEncode completed for " + str(dictargs['input']) + " -> " + str(dictargs['output_file']))
 
     def runInternal(self):
         print("Running")

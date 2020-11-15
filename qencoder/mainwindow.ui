@@ -1187,7 +1187,7 @@
            <number>63</number>
           </property>
           <property name="value">
-           <number>50</number>
+           <number>60</number>
           </property>
          </widget>
         </item>
@@ -1265,7 +1265,7 @@
            <number>63</number>
           </property>
           <property name="value">
-           <number>6</number>
+           <number>5</number>
           </property>
          </widget>
         </item>
@@ -1281,7 +1281,7 @@
            <double>0.100000000000000</double>
           </property>
           <property name="value">
-           <double>95.000000000000000</double>
+           <double>92.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -1320,7 +1320,7 @@
            <number>62</number>
           </property>
           <property name="value">
-           <number>25</number>
+           <number>15</number>
           </property>
          </widget>
         </item>

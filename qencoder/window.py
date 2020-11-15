@@ -3,7 +3,7 @@
 import shlex
 
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QPushButton
+from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 from functools import partial
 
 import signal
@@ -18,7 +18,6 @@ from pathlib import Path
 import os
 from time import sleep
 import psutil
-from multiprocessing import Queue
 import threading
 
 import pickle
@@ -28,6 +27,15 @@ try:
     from scenedetect.video_manager import VideoManager
 except ImportError as e:
     canLoadScenedetect = 0
+    print("Error loading pyscenedetect. Either it is missing or not properly installed.")
+
+hasLsmash = 1
+try:
+    from vapoursynth import core
+    core.lsmas.get_functions()
+except:
+    hasLsmash = 0
+    print("Error loading lsmash. Either vapoursynth is missing or lsmash is not installed.")
 
 
 # baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
@@ -58,7 +66,9 @@ class window(QMainWindow, Ui_qencoder):
 
     def __init__(self, *args, **kwargs):
         global canLoadScenedetect
+        global hasLsmash
         self.canLoadScenedetect = canLoadScenedetect
+        self.hasLsmash = hasLsmash
         QMainWindow.__init__(self, *args, **kwargs)
         self.setupUi(self)
         self.inputFileChoose.clicked.connect(self.inputFileSelect)
@@ -76,19 +86,14 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton.clicked.connect(self.encodeVideo)
         self.pushButton_encQueue.clicked.connect(self.encodeVideoQueue)
         self.pushButton_encQueue.setEnabled(0)
-        self.audioqualitybox.activated[int].connect(self.changeAudioPreset)
         self.comboBox_quality.activated[int].connect(self.changeQPreset)
         self.presetbox.activated[int].connect(self.changePresetSimple)
         self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
 
         self.comboBox_encoder.activated[int].connect(self.changeEncoder)
 
-        self.audioqualitybox.setEnabled(0)
-        self.label_audioquality.setEnabled(0)
-        self.checkBox_minsplit.clicked.connect(self.disableMinimumSplitBox)
         self.spinBox_speed.valueChanged.connect(self.changePresetAdvanced)
         self.spinBox_quality.valueChanged.connect(self.customQPreset)
-        self.spinBox_audio.valueChanged.connect(self.customAPreset)
         self.checkBox_rtenc.stateChanged.connect(self.changeRTState)
         self.checkBox_videocmd.stateChanged.connect(self.customVidCmd)
         self.checkBox_audiocmd.stateChanged.connect(self.customAudCmd)
@@ -112,7 +117,6 @@ class window(QMainWindow, Ui_qencoder):
         self.checkBox_cropping.clicked.connect(self.enableCropping)
         self.checkBox_rescale.clicked.connect(self.enableRescale)
         self.checkBox_vmaf.clicked.connect(self.enableDisableVmaf)
-        self.checkBox_lessshitsplit.clicked.connect(self.enableDisableGoodSplit)
         if (len(sys.argv) > 1):
             self.inputPath.setText(sys.argv[1])
 
@@ -127,17 +131,6 @@ class window(QMainWindow, Ui_qencoder):
             6: 20,
             7: 10,
             8: 0
-        }
-
-        self.audiobitratedict = {
-            0: 24,
-            1: 32,
-            2: 64,
-            3: 76,
-            4: 96,
-            5: 128,
-            6: 160,
-            7: 250
         }
 
         self.colorspacedict = {
@@ -157,7 +150,6 @@ class window(QMainWindow, Ui_qencoder):
             self.enableCropping()
             self.enableRescale()
             self.enableDisableVmaf()
-            self.enableDisableGoodSplit()
         except:
             print("Unable to load existing preset at: " + str(self.configpath) + ".")
             print("Possibly the first time you have run this, corrupted, or an older version")
@@ -165,18 +157,12 @@ class window(QMainWindow, Ui_qencoder):
             self.enableCropping()
             self.enableRescale()
             self.enableDisableVmaf()
-            self.enableDisableGoodSplit()
         # self.speedButton.changeEvent.connect(self.setSpeed)
-
-    def enableDisableGoodSplit(self):
-        state = self.checkBox_lessshitsplit.isChecked()
-        self.label_split.setEnabled(not state)
-        self.spinBox_split.setEnabled(not state)
-        if (self.canLoadScenedetect == 0):
-            self.checkBox_lessshitsplit.setEnabled(0)
-            self.checkBox_lessshitsplit.setChecked(1)
-            self.label_split.setEnabled(0)
-            self.spinBox_split.setEnabled(0)
+        self.checkBox_lsmash.setEnabled(hasLsmash)
+        if canLoadScenedetect == 0:
+            if self.comboBox_splitmode.currentIndex() == 2:
+                self.comboBox_splitmode.setCurrentIndex(0)
+            self.comboBox_splitmode.model().item(2).setEnabled(False)
 
     def enableDisableVmaf(self):
         state = self.checkBox_vmaf.isChecked()
@@ -188,8 +174,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_vmafsteps.setEnabled(state)
         self.spinBox_minq.setEnabled(state)
         self.doubleSpinBox_vmaf.setEnabled(state)
-        self.spinBox_boost.setEnabled(not state)
-        self.label_boost.setEnabled(not state)
         self.spinBox_maxq.setEnabled(state)
         self.label_maxq.setEnabled(state)
 
@@ -226,15 +210,6 @@ class window(QMainWindow, Ui_qencoder):
             self.enableCropping()
             self.enableRescale()
             self.enableDisableVmaf()
-            self.enableDisableGoodSplit()
-
-    def disableMinimumSplitBox(self, state):
-        if state:
-            self.label_minsplit.setEnabled(0)
-            self.spinBox_minsplit.setEnabled(0)
-        else:
-            self.label_minsplit.setEnabled(1)
-            self.spinBox_minsplit.setEnabled(1)
 
     def encodeFinished(self, taskname, errorCode):
         self.currentlyRunning = 0
@@ -501,16 +476,6 @@ class window(QMainWindow, Ui_qencoder):
             self.checkBox_twopass.setChecked(self.twopassState)
             self.checkBox_twopass.setEnabled(1)
 
-    def customAPreset(self):
-        self.audioqualitybox.setCurrentIndex(7)  # custom
-
-    def changeAudioPreset(self, i):
-        self.audioState = i
-        trueQuality = self.getAudioBitrate(i)
-        print(str(trueQuality) + " is current quality")
-        self.spinBox_audio.setValue(trueQuality)
-        self.audioqualitybox.setCurrentIndex(i)
-
     def customQPreset(self):
         self.comboBox_quality.setCurrentIndex(9)  # custom
 
@@ -563,11 +528,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_speed.setValue(self.getCPUUsed())
         self.presetbox.setCurrentIndex(i)
 
-    def getAudioBitrate(self, iindex):
-        if (iindex < 8):
-            return self.audiobitratedict[iindex]
-        else:
-            return self.spinBox_audio.value()
 
     def getQuality(self, qval):
         if (qval < 9):
@@ -600,15 +560,11 @@ class window(QMainWindow, Ui_qencoder):
     def audioEnableState(self, checkbox):
         self.label_audio.setEnabled(1)
         self.spinBox_audio.setReadOnly(0)
-        self.audioqualitybox.setEnabled(1)
-        self.label_audioquality.setEnabled(1)
         self.spinBox_audio.setEnabled(1)
 
     def audioDisableState(self, checkbox):
         self.label_audio.setEnabled(0)
         self.spinBox_audio.setReadOnly(1)
-        self.audioqualitybox.setEnabled(0)
-        self.label_audioquality.setEnabled(0)
         self.spinBox_audio.setEnabled(0)
 
     def bitrateEnableState(self, checkbox):
@@ -618,8 +574,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_quality.setMaximum(99999)
         self.spinBox_quality.setMinimum(8)
         self.spinBox_quality.setValue(3000)
-        self.spinBox_boost.setReadOnly(1)
-        self.label_boost.setEnabled(0)
         self.comboBox_quality.setCurrentIndex(9)  # custom
         self.comboBox_quality.setEnabled(0)
         self.label_quality.setEnabled(0)
@@ -630,8 +584,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_quality.setMaximum(63)
         self.spinBox_quality.setMinimum(0)
         self.spinBox_quality.setValue(30)
-        self.spinBox_boost.setReadOnly(0)
-        self.label_boost.setEnabled(1)
         self.comboBox_quality.setEnabled(1)
         self.label_quality.setEnabled(1)
 
@@ -698,6 +650,14 @@ class window(QMainWindow, Ui_qencoder):
             vparams += " --i444"
         return vparams
 
+    def getSplitMethod(self):
+        if (self.comboBox_splitmode.currentIndex() == 0):
+            return "ffmpeg"
+        elif (self.comboBox_splitmode.currentIndex() == 1):
+            return "time"
+        else:
+            return "pyscene"
+
     def getAudioParams(self):
         if (self.checkBox_audiocmd.isChecked()):
             return self.textEdit_audiocmd.toPlainText()
@@ -705,6 +665,29 @@ class window(QMainWindow, Ui_qencoder):
             return "-b:a " + str(self.spinBox_audio.value()) + "k -c:a libopus"
         else:
             return "-c:a copy"
+
+    def getVmafFilter(self):
+        astr = ""
+        addedStuff = False
+        if (self.checkBox_cropping.isChecked() and (
+                self.spinBox_cropdown.value() > 0 or self.spinBox_cropright.value() > 0 or self.spinBox_croptop.value() > 0 or self.spinBox_cropleft.value() > 0)):
+            widthSub = self.spinBox_cropright.value() + self.spinBox_cropleft.value()
+            heightSub = self.spinBox_croptop.value() + self.spinBox_cropdown.value()
+            astr += "crop=iw-" + str(widthSub) + ":ih-" + str(heightSub) + ":" + str(
+                self.spinBox_cropleft.value()) + ":" + str(self.spinBox_croptop.value())
+            addedStuff = True
+        if self.checkBox_rescale.isChecked():
+            if addedStuff:
+                astr += ",scale=" + str(self.spinBox_xres.value()) + ":" + str(self.spinBox_yres.value())
+            else:
+                astr += "scale=" + str(self.spinBox_xres.value()) + ":" + str(self.spinBox_yres.value())
+        return astr
+
+    def getVmafRes(self):
+        if self.checkBox_rescale.isChecked():
+            return str(self.spinBox_xres.value()) + "x" str(self.spinBox_yres.value())
+        else:
+            return "1920x1080"
 
     def setFromPresetDict(self, dict):
         # 1.1 variables
@@ -714,7 +697,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_speed.setValue(dict['cpuused'])
         self.spinBox_jobs.setValue(dict['jobs'])
         self.spinBox_audio.setValue(dict['audiobr'])
-        self.spinBox_boost.setValue(dict['boost'])
         self.spinBox_threads.setValue(dict['threads'])
         self.checkBox_audio.setChecked(dict['audio'])
         self.spinBox_quality.setValue(dict['qual'])
@@ -724,7 +706,6 @@ class window(QMainWindow, Ui_qencoder):
         self.textEdit_videocmd.setPlainText(dict['vidcmd'])
         self.textEdit_audiocmd.setPlainText(dict['audcmd'])
         self.textEdit_ffmpegcmd.setPlainText(dict['ffmpegcmd'])
-        self.audioqualitybox.setCurrentIndex(dict['aq'])
         self.presetbox.setCurrentIndex(dict['preset'])
         self.comboBox_quality.setCurrentIndex(dict['vq'])
         self.checkBox_bitrate.setChecked(dict['brmode'])
@@ -741,10 +722,8 @@ class window(QMainWindow, Ui_qencoder):
             self.checkBox_rtenc.setChecked(False)
             self.checkBox_twopass.setChecked(True)
             print("Resetting invalid twopass and realtime state combos")
-        self.checkBox_minsplit.setChecked(dict['minsplit'])
 
         # 1.2 variables
-        self.spinBox_minsplit.setValue(dict['minsplitsize'])
         self.spinBox_maxkfdist.setValue(dict['maxkfdist'])
 
         # 1.5 variables
@@ -758,32 +737,33 @@ class window(QMainWindow, Ui_qencoder):
         self.doubleSpinBox_vmaf.setValue(dict['TargetVMAFValue'])
         self.label_vmafpath.setText(dict['TargetVMAFPath'])
         self.checkBox_shutdown.setChecked(dict['ShutdownAfter'])
-        self.checkBox_lessshitsplit.setChecked(dict['BetterSplittingAlgo'])
-        self.checkBox_unsafeSplit.setChecked(dict['unsafe_split'])
+
+        # 2.0 variables
+        self.checkBox_lsmash.setChecked(dict['usinglsmas'])
+        self.comboBox_splitmode.setCurrentIndex(dict['splitmethod'])
 
     def getPresetDict(self):
         return {'2p': self.checkBox_twopass.isChecked(), 'audio': self.checkBox_audio.isChecked(),
                 'enc': self.comboBox_encoder.currentIndex(),
-                'aq': self.audioqualitybox.currentIndex(), 'preset': self.presetbox.currentIndex(),
+                'preset': self.presetbox.currentIndex(),
                 'vq': self.comboBox_quality.currentIndex(), 'brmode': self.checkBox_bitrate.isChecked(),
                 '10b': self.checkBox_hdr.isChecked(), 'resume': self.checkBox_resume.isChecked(),
                 'keeptmp': self.checkBox_tempfolder.isChecked(), 'rtenc': self.checkBox_rtenc.isChecked(),
-                'minsplit': self.checkBox_minsplit.isChecked(), 'qual': self.spinBox_quality.value(),
+                'qual': self.spinBox_quality.value(),
                 'splittr': self.spinBox_split.value(), 'cpuused': self.spinBox_speed.value(),
                 'jobs': self.spinBox_jobs.value(), 'audiobr': self.spinBox_audio.value(),
-                'boost': self.spinBox_boost.value(), 'threads': self.spinBox_threads.value(),
+                'threads': self.spinBox_threads.value(),
                 'cusvid': self.checkBox_videocmd.isChecked(), 'cusaud': self.checkBox_audiocmd.isChecked(),
                 'cusffmpeg': self.checkBox_ffmpegcmd.isChecked(), 'vidcmd': self.textEdit_videocmd.toPlainText(),
                 'audcmd': self.textEdit_audiocmd.toPlainText(), 'ffmpegcmd': self.textEdit_ffmpegcmd.toPlainText(),
-                'minsplitsize': self.spinBox_minsplit.value(), 'maxkfdist': self.spinBox_maxkfdist.value(),
+                'maxkfdist': self.spinBox_maxkfdist.value(),
                 'inputFmt': self.comboBox_inputFormat.currentIndex(),
                 'colordataCS': self.comboBox_colorspace.currentIndex(),
                 'colordataText': self.lineEdit_colordata.text(), 'isTargetVMAF': self.checkBox_vmaf.isChecked(),
                 'TargetVMAFMinQ': self.spinBox_minq.value(), 'TargetVMAFMaxQ': self.spinBox_maxq.value(),
                 'TargetVMAFSteps': self.spinBox_vmafsteps.value(), 'TargetVMAFValue': self.doubleSpinBox_vmaf.value(),
                 'TargetVMAFPath': self.label_vmafpath.text(), 'ShutdownAfter': self.checkBox_shutdown.isChecked(),
-                'BetterSplittingAlgo': self.checkBox_lessshitsplit.isChecked(),
-                'unsafe_split': self.checkBox_unsafeSplit.isChecked()
+                'usinglsmas' : self.checkBox_lsmash.isChecked(), 'splitmethod': self.comboBox_splitmode.currentIndex()
                 }
 
     def getArgs(self):
@@ -795,13 +775,14 @@ class window(QMainWindow, Ui_qencoder):
                 'keep': self.checkBox_tempfolder.isChecked(),
                 'pix_format': self.comboBox_inputFormat.currentText(), 'ffmpeg': shlex.split(self.getFFMPEGParams()),
                 'threads': self.spinBox_threads.value(),
-                'split_method': ("aom_keyframes" if self.checkBox_lessshitsplit.isChecked() else "pyscene"),
+                'split_method': self.getSplitMethod(),
+                'chunk_method':("vs_lsmash" if self.checkBox_lsmash.isChecked() and self.checkBox_lsmash.isEnabled() else "segment"),
                 'temp': Path(
                 str(os.path.dirname(self.outputPath.text())) + "/temp_" + str(
                     os.path.basename(self.outputPath.text()))), 'vmaf_steps': self.spinBox_vmafsteps.value(),
                 'min_q': self.spinBox_minq.value(), 'max_q': self.spinBox_maxq.value(),
                 'vmaf_target': (self.doubleSpinBox_vmaf.value() if self.checkBox_vmaf.isChecked() else None),
-                'vmaf_path': self.label_vmafpath.text()}
+                'vmaf_path': self.label_vmafpath.text(), 'vmaf_filter': self.getVmafFilter(), 'vmaf_res': self.getVmafRes()}
 
         if self.comboBox_encoder.currentIndex() >= 1:
             args['encoder'] = 'vpx'
@@ -883,7 +864,6 @@ class window(QMainWindow, Ui_qencoder):
         self.progressBar_total.setEnabled(1)
         self.spinBox_audio.setEnabled(0)
         self.spinBox_quality.setEnabled(0)
-        self.spinBox_boost.setEnabled(0)
         self.spinBox_speed.setEnabled(0)
         self.spinBox_split.setEnabled(0)
         self.spinBox_jobs.setEnabled(0)
@@ -892,7 +872,6 @@ class window(QMainWindow, Ui_qencoder):
         self.outputFileChoose.setEnabled(0)
         self.label_2.setEnabled(0)
         self.label_audio.setEnabled(0)
-        self.label_boost.setEnabled(0)
         self.label_q.setEnabled(0)
         self.label_split.setEnabled(0)
         self.label_inputformat.setEnabled(0)
@@ -900,18 +879,14 @@ class window(QMainWindow, Ui_qencoder):
         self.comboBox_colorspace.setEnabled(0)
         self.comboBox_inputFormat.setEnabled(0)
         self.comboBox_quality.setEnabled(0)
-        self.audioqualitybox.setEnabled(0)
         self.presetbox.setEnabled(0)
         self.checkBox_audio.setEnabled(0)
         self.checkBox_bitrate.setEnabled(0)
         self.checkBox_hdr.setEnabled(0)
-        self.checkBox_minsplit.setEnabled(0)
         self.checkBox_resume.setEnabled(0)
         self.checkBox_rtenc.setEnabled(0)
         self.checkBox_tempfolder.setEnabled(0)
         self.checkBox_twopass.setEnabled(0)
-        self.audioqualitybox.setEnabled(0)
-        self.label_audioquality.setEnabled(0)
         self.label_preset.setEnabled(0)
         self.label_quality.setEnabled(0)
         self.label_4.setEnabled(0)
@@ -925,10 +900,8 @@ class window(QMainWindow, Ui_qencoder):
         self.outputPath.setText("")
         self.pushButton_del.setEnabled(0)
         self.listWidget.setEnabled(0)
-        self.label_minsplit.setEnabled(0)
         self.label_maxkfdist.setEnabled(0)
         self.spinBox_maxkfdist.setEnabled(0)
-        self.spinBox_minsplit.setEnabled(0)
         self.pushButton_edit.setEnabled(0)
         self.checkBox_cropping.setEnabled(0)
         self.checkBox_rescale.setEnabled(0)
@@ -941,7 +914,6 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_croptop.setEnabled(0)
         self.spinBox_cropdown.setEnabled(0)
         self.checkBox_vmaf.setEnabled(0)
-        self.label_boost.setEnabled(0)
         self.label_qmin.setEnabled(0)
         self.label_teststeps.setEnabled(0)
         self.label_target.setEnabled(0)
@@ -953,8 +925,9 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_maxq.setEnabled(0)
         self.label_maxq.setEnabled(0)
         self.checkBox_shutdown.setEnabled(0)
-        self.checkBox_lessshitsplit.setEnabled(0)
-        self.checkBox_unsafeSplit.setEnabled(0)
+        self.checkBox_lsmash.setEnabled(0)
+        self.comboBox_splitmode.setEnabled(0)
+        self.label_splitmode.setEnabled(0)
 
     def finalizeEncode(self):
         self.workerThread.quit()
@@ -981,11 +954,9 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_threads.setEnabled(1)
         self.label_2.setEnabled(1)
         self.label_q.setEnabled(1)
-        self.checkBox_lessshitsplit.setEnabled(1)
         self.checkBox_shutdown.setEnabled(1)
-        if (not self.checkBox_lessshitsplit.isChecked()):
-            self.label_split.setEnabled(1)
-            self.spinBox_split.setEnabled(1)
+        self.label_split.setEnabled(1)
+        self.spinBox_split.setEnabled(1)
 
         self.label_inputformat.setEnabled(1)
         self.label_6.setEnabled(1)
@@ -995,7 +966,6 @@ class window(QMainWindow, Ui_qencoder):
         self.comboBox_quality.setEnabled(1)
         self.presetbox.setEnabled(1)
         self.checkBox_hdr.setEnabled(1)
-        self.checkBox_minsplit.setEnabled(1)
         self.checkBox_resume.setEnabled(1)
         if (self.spinBox_speed.value() < 7 or self.comboBox_encoder.currentIndex() != 0):
             self.checkBox_rtenc.setEnabled(1)
@@ -1003,16 +973,12 @@ class window(QMainWindow, Ui_qencoder):
         if (self.checkBox_audio.isChecked()):
             self.spinBox_audio.setEnabled(1)
             self.label_audio.setEnabled(1)
-            self.audioqualitybox.setEnabled(1)
-            self.label_audioquality.setEnabled(1)
         self.spinBox_quality.setEnabled(1)
         self.checkBox_bitrate.setEnabled(1)
         self.label_preset.setEnabled(1)
         self.enableDisableVmaf()
         if (not self.checkBox_bitrate.isChecked()):
             self.checkBox_vmaf.setEnabled(1)
-            self.label_boost.setEnabled(1)
-            self.spinBox_boost.setEnabled(1)
             self.comboBox_quality.setEnabled(1)
             self.label_quality.setEnabled(1)
         if (not self.checkBox_rtenc.isChecked()):
@@ -1043,9 +1009,6 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_encQueue.setEnabled(0)
         self.label_maxkfdist.setEnabled(1)
         self.spinBox_maxkfdist.setEnabled(1)
-        if (not self.checkBox_minsplit.isChecked()):
-            self.spinBox_minsplit.setEnabled(1)
-            self.label_minsplit.setEnabled(1)
         self.actionOpen.setEnabled(1)
         self.actionSave.setEnabled(1)
         self.actionSave_Queue.setEnabled(1)
@@ -1056,11 +1019,10 @@ class window(QMainWindow, Ui_qencoder):
         self.actionReset_All_Settings.setEnabled(1)
         self.checkBox_cropping.setEnabled(1)
         self.checkBox_rescale.setEnabled(1)
-        self.checkBox_unsafeSplit.setEnabled(1)
+        self.checkBox_lsmash.setEnabled(self.hasLsmash)
         self.enableCropping()
         self.enableRescale()
         self.enableDisableVmaf()
-        self.enableDisableGoodSplit()
         print("Enabled all buttons, returning program to normal")
 
 

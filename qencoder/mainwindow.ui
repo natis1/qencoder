@@ -603,7 +603,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="label_split">
             <property name="statusTip">
-             <string>Luma change threshold to split at. If video has too many splits, raise this.</string>
+             <string>0-1 for ffmpeg, 0-100 for scenedetect. Lower=more splits made. Suggested value ~30%</string>
             </property>
             <property name="text">
              <string>Split threshold</string>
@@ -727,22 +727,6 @@
             </item>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QSpinBox" name="spinBox_split">
-            <property name="statusTip">
-             <string>Luma change threshold to split at. If video has too many splits, raise this.</string>
-            </property>
-            <property name="minimum">
-             <number>1</number>
-            </property>
-            <property name="maximum">
-             <number>99</number>
-            </property>
-            <property name="value">
-             <number>30</number>
-            </property>
-           </widget>
-          </item>
           <item row="4" column="4">
            <widget class="QCheckBox" name="checkBox_hdr">
             <property name="statusTip">
@@ -807,7 +791,7 @@
           <item row="1" column="3">
            <widget class="QLabel" name="label_maxkfdist">
             <property name="statusTip">
-             <string>Max distance in frames between keyframes. Lower helps with seeking but increases size. 0 for infinite.</string>
+             <string>Distance between keyframes in frames. Lower helps with seeking but increases size. Used by time splitting.</string>
             </property>
             <property name="text">
              <string>Max kf distance</string>
@@ -817,7 +801,7 @@
           <item row="1" column="4">
            <widget class="QSpinBox" name="spinBox_maxkfdist">
             <property name="statusTip">
-             <string>Max distance in frames between keyframes. Lower helps with seeking but increases size. 0 for infinite.</string>
+             <string>Distance between keyframes in frames. Lower helps with seeking but increases size. Used by time splitting.</string>
             </property>
             <property name="maximum">
              <number>9998</number>
@@ -854,6 +838,25 @@
               <string>pyscenedetect</string>
              </property>
             </item>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="doubleSpinBox_split">
+            <property name="statusTip">
+             <string>0-1 for ffmpeg, 0-100 for scenedetect. Lower=more splits made. Suggested value ~30%</string>
+            </property>
+            <property name="decimals">
+             <number>3</number>
+            </property>
+            <property name="maximum">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.010000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.300000000000000</double>
+            </property>
            </widget>
           </item>
          </layout>

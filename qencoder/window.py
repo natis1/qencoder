@@ -89,6 +89,7 @@ class window(QMainWindow, Ui_qencoder):
         self.comboBox_quality.activated[int].connect(self.changeQPreset)
         self.presetbox.activated[int].connect(self.changePresetSimple)
         self.comboBox_colorspace.activated[int].connect(self.changeColorspace)
+        self.comboBox_splitmode.activated[int].connect(self.changeSplitmode)
 
         self.comboBox_encoder.activated[int].connect(self.changeEncoder)
 
@@ -163,6 +164,30 @@ class window(QMainWindow, Ui_qencoder):
             if self.comboBox_splitmode.currentIndex() == 2:
                 self.comboBox_splitmode.setCurrentIndex(0)
             self.comboBox_splitmode.model().item(2).setEnabled(False)
+        self.changeSplitmode(self.comboBox_splitmode.currentIndex(), False)
+
+    def changeSplitmode(self, newPreset, setval=True):
+        if newPreset == 0:
+            self.doubleSpinBox_split.setEnabled(True)
+            self.doubleSpinBox_split.setDecimals(3)
+            if setval:
+                self.doubleSpinBox_split.setValue(0.3)
+            self.doubleSpinBox_split.setMaximum(1.0)
+            self.doubleSpinBox_split.setMinimum(0.001)
+            self.doubleSpinBox_split.setSingleStep(0.01)
+            self.spinBox_maxkfdist.setMinimum(0)
+        elif newPreset == 1:
+            self.doubleSpinBox_split.setEnabled(False)
+            self.spinBox_maxkfdist.setMinimum(2)
+        else:
+            self.doubleSpinBox_split.setEnabled(True)
+            if setval:
+                self.doubleSpinBox_split.setValue(35)
+            self.doubleSpinBox_split.setMaximum(100)
+            self.doubleSpinBox_split.setMinimum(1)
+            self.doubleSpinBox_split.setSingleStep(1)
+            self.doubleSpinBox_split.setDecimals(0)
+            self.spinBox_maxkfdist.setMinimum(0)
 
     def enableDisableVmaf(self):
         state = self.checkBox_vmaf.isChecked()
@@ -239,11 +264,7 @@ class window(QMainWindow, Ui_qencoder):
 
     def newTask(self, taskname, taskDesc: str, taskFrames: int):
         if not self.runningQueueMode:
-            if taskDesc.startswith("AOMKF"):
-                self.currentFrames = 0
-                self.label_status.setText("AOMKF - " + str(self.currentFrames) + "/" + str(self.totalFrames))
-                self.progressBar_total.setValue(0)
-            elif taskDesc.startswith("Pyscene"):
+            if taskDesc.startswith("Pyscene"):
                 self.label_status.setText("Pyscenedetect... please wait")
                 self.progressBar_total.setValue(5)
         else:
@@ -613,7 +634,7 @@ class window(QMainWindow, Ui_qencoder):
         if (self.checkBox_videocmd.isChecked()):
             return self.textEdit_videocmd.toPlainText()
         vparams = "--threads=" + str(self.spinBox_threads.value())
-        if (self.spinBox_maxkfdist.value() > 0):
+        if (self.spinBox_maxkfdist.value() > 0 and self.comboBox_splitmode.currentIndex() != 1):
             vparams += " --kf-max-dist=" + str(self.spinBox_maxkfdist.value())
         if (self.comboBox_encoder.currentIndex() < 2):
             vparams += " --tile-columns=1 --tile-rows=0 --cpu-used=" + str(self.spinBox_speed.value())
@@ -693,7 +714,7 @@ class window(QMainWindow, Ui_qencoder):
         # 1.1 variables
         self.comboBox_encoder.setCurrentIndex(dict['enc'])
         self.changeEncoder(dict['enc'])
-        self.spinBox_split.setValue(dict['splittr'])
+        self.doubleSpinBox_split.setValue(dict['splittr'])
         self.spinBox_speed.setValue(dict['cpuused'])
         self.spinBox_jobs.setValue(dict['jobs'])
         self.spinBox_audio.setValue(dict['audiobr'])
@@ -750,7 +771,7 @@ class window(QMainWindow, Ui_qencoder):
                 '10b': self.checkBox_hdr.isChecked(), 'resume': self.checkBox_resume.isChecked(),
                 'keeptmp': self.checkBox_tempfolder.isChecked(), 'rtenc': self.checkBox_rtenc.isChecked(),
                 'qual': self.spinBox_quality.value(),
-                'splittr': self.spinBox_split.value(), 'cpuused': self.spinBox_speed.value(),
+                'splittr': self.doubleSpinBox_split.value(), 'cpuused': self.spinBox_speed.value(),
                 'jobs': self.spinBox_jobs.value(), 'audiobr': self.spinBox_audio.value(),
                 'threads': self.spinBox_threads.value(),
                 'cusvid': self.checkBox_videocmd.isChecked(), 'cusaud': self.checkBox_audiocmd.isChecked(),
@@ -769,20 +790,21 @@ class window(QMainWindow, Ui_qencoder):
     def getArgs(self):
         args = {'video_params': shlex.split(self.getVideoParams()), 'input': Path(self.inputPath.text()), 'encoder': 'aom',
                 'workers': self.spinBox_jobs.value(), 'audio_params': shlex.split(self.getAudioParams()),
-                'threshold': self.spinBox_split.value(),
+                'threshold': self.doubleSpinBox_split.value(),
                 'passes': (2 if self.checkBox_twopass.isChecked() else 1), 'output_file': Path(self.outputPath.text()),
                 'scenes': None, 'resume': self.checkBox_resume.isChecked(),
                 'keep': self.checkBox_tempfolder.isChecked(),
                 'pix_format': self.comboBox_inputFormat.currentText(), 'ffmpeg': shlex.split(self.getFFMPEGParams()),
                 'threads': self.spinBox_threads.value(),
                 'split_method': self.getSplitMethod(),
-                'chunk_method':("vs_lsmash" if self.checkBox_lsmash.isChecked() and self.checkBox_lsmash.isEnabled() else "segment"),
+                'chunk_method': ("vs_lsmash" if self.checkBox_lsmash.isChecked() and self.checkBox_lsmash.isEnabled() else "segment"),
                 'temp': Path(
                 str(os.path.dirname(self.outputPath.text())) + "/temp_" + str(
                     os.path.basename(self.outputPath.text()))), 'vmaf_steps': self.spinBox_vmafsteps.value(),
                 'min_q': self.spinBox_minq.value(), 'max_q': self.spinBox_maxq.value(),
                 'vmaf_target': (self.doubleSpinBox_vmaf.value() if self.checkBox_vmaf.isChecked() else None),
-                'vmaf_path': self.label_vmafpath.text(), 'vmaf_filter': self.getVmafFilter(), 'vmaf_res': self.getVmafRes()}
+                'vmaf_path': self.label_vmafpath.text(), 'vmaf_filter': self.getVmafFilter(),
+                'vmaf_res': self.getVmafRes(), 'time_split_interval': self.spinBox_maxkfdist.value()}
 
         if self.comboBox_encoder.currentIndex() >= 1:
             args['encoder'] = 'vpx'
@@ -865,7 +887,7 @@ class window(QMainWindow, Ui_qencoder):
         self.spinBox_audio.setEnabled(0)
         self.spinBox_quality.setEnabled(0)
         self.spinBox_speed.setEnabled(0)
-        self.spinBox_split.setEnabled(0)
+        self.doubleSpinBox_split.setEnabled(0)
         self.spinBox_jobs.setEnabled(0)
         self.label_jobs.setEnabled(0)
         self.inputFileChoose.setEnabled(0)
@@ -956,7 +978,8 @@ class window(QMainWindow, Ui_qencoder):
         self.label_q.setEnabled(1)
         self.checkBox_shutdown.setEnabled(1)
         self.label_split.setEnabled(1)
-        self.spinBox_split.setEnabled(1)
+        if self.comboBox_splitmode.currentIndex() != 1:
+            self.doubleSpinBox_split.setEnabled(1)
 
         self.label_inputformat.setEnabled(1)
         self.label_6.setEnabled(1)

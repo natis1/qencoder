@@ -685,7 +685,7 @@ class window(QMainWindow, Ui_qencoder):
 
     def getVmafRes(self):
         if self.checkBox_rescale.isChecked():
-            return str(self.spinBox_xres.value()) + "x" str(self.spinBox_yres.value())
+            return str(self.spinBox_xres.value()) + "x" + str(self.spinBox_yres.value())
         else:
             return "1920x1080"
 

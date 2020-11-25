@@ -2,6 +2,8 @@
 # This Python file uses the following encoding: utf-8
 import glob
 import shlex
+import concurrent
+import concurrent.futures
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox
@@ -264,23 +266,40 @@ class window(QMainWindow, Ui_qencoder):
             self.enableDisableVmaf()
 
     def encodeFinished(self, taskname, errorCode):
-        self.currentlyRunning = 0
-        if errorCode == 0:
-            self.pushButton.setEnabled(1)
-            self.label_status.setText("Encoding complete!")
-            self.progressBar_total.setValue(100)
-            self.finalizeEncode()
+        if (not self.runningQueueMode) or int(taskname) == -1:
+            self.currentlyRunning = 0
+            if errorCode == 0:
+                self.pushButton.setEnabled(1)
+                self.label_status.setText("Encoding complete!")
+                self.progressBar_total.setValue(100)
+                self.finalizeEncode()
+            else:
+                self.pushButton.setEnabled(1)
+                self.pushButton.setStyleSheet("color: red; background-color: white")
+                self.pushButton.setText("Reset")
+                self.label_status.setText("ERR. See temp/log.log")
         else:
-            self.pushButton.setEnabled(1)
-            self.pushButton.setStyleSheet("color: red; background-color: white")
-            self.pushButton.setText("Reset")
-            self.label_status.setText("ERR. See temp/log.log")
+            taskNumber = int(taskname)
+            q = self.getQueueIndexData(taskNumber)
+            item = self.listWidget.item(taskNumber)
+            if errorCode == 0:
+                item.setText("Complete: " + q)
+            else:
+                item.setText("Failed: " + q)
 
     def addFrames(self, taskname, addFrames):
         if not self.runningQueueMode:
             self.currentFrames += addFrames
             self.progressBar_total.setValue(int(90 * self.currentFrames / self.totalFrames) + 10)
             self.label_status.setText("Encoding: " + str(self.currentFrames) + "/" + str(self.totalFrames))
+        else:
+            taskNumber = int(taskname)
+            self.currentFrames[taskNumber] += addFrames
+            q = self.getQueueIndexData(taskNumber)
+            item = self.listWidget.item(taskNumber)
+            item.setText("Encoding: " + str(self.currentFrames[taskNumber]) + "/" +
+                         str(self.totalFrames[taskNumber]) + " progress: " +
+                         str(int(90 * self.currentFrames[taskNumber] / self.totalFrames[taskNumber]) + 10) + "% " + q)
 
     def startEncode(self, taskname, totalFrames, initFrames):
         if not self.runningQueueMode:
@@ -288,6 +307,14 @@ class window(QMainWindow, Ui_qencoder):
             self.currentFrames = initFrames
             self.progressBar_total.setValue(int(90 * initFrames / totalFrames) + 10)
             self.label_status.setText("Encoding: " + str(initFrames) + "/" + str(totalFrames))
+        else:
+            taskNumber = int(taskname)
+            self.currentFrames[taskNumber] = initFrames
+            self.totalFrames[taskNumber] = totalFrames
+            q = self.getQueueIndexData(taskNumber)
+            item = self.listWidget.item(taskNumber)
+            item.setText("Encoding: " + str(initFrames) + "/" + str(totalFrames) + " progress: " + str(int(90 * initFrames / totalFrames) + 10) + "% " + q)
+            self.label_status.setText("See queue for progress")
 
     def newTask(self, taskname, taskDesc: str, taskFrames: int):
         if not self.runningQueueMode:
@@ -295,8 +322,11 @@ class window(QMainWindow, Ui_qencoder):
                 self.label_status.setText("Pyscenedetect... please wait")
                 self.progressBar_total.setValue(5)
         else:
-            taskNumber = int(taskname)
-            pass
+            if taskDesc.startswith("Pyscene"):
+                taskNumber = int(taskname)
+                q = self.getQueueIndexData(taskNumber)
+                item = self.listWidget.item(taskNumber)
+                item.setText("Pyscenedetect... please wait " + q)
 
     def resetAllSettings(self):
         buttonReply = QMessageBox.question(self, 'Factory reset all settings?',
@@ -403,6 +433,10 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton.setEnabled(0)
         self.pushButton_encQueue.setEnabled(1)
         self.pushButton_save.setEnabled(0)
+
+    def getQueueIndexData(self, index):
+        q = self.encodeList[index]
+        return str(q[0]['input'].parts[-1]) + " -> " + str(q[0]['output_file'].parts[-1])
 
     def redrawQueueList(self):
         self.listWidget.clear()
@@ -789,6 +823,7 @@ class window(QMainWindow, Ui_qencoder):
         # 2.0 variables
         self.checkBox_lsmash.setChecked(dict['usinglsmas'])
         self.comboBox_splitmode.setCurrentIndex(dict['splitmethod'])
+        self.spinBox_qjobs.setValue(dict['qjobs'])
 
     def getPresetDict(self):
         return {'2p': self.checkBox_twopass.isChecked(), 'audio': self.checkBox_audio.isChecked(),
@@ -811,7 +846,8 @@ class window(QMainWindow, Ui_qencoder):
                 'TargetVMAFMinQ': self.spinBox_minq.value(), 'TargetVMAFMaxQ': self.spinBox_maxq.value(),
                 'TargetVMAFSteps': self.spinBox_vmafsteps.value(), 'TargetVMAFValue': self.doubleSpinBox_vmaf.value(),
                 'TargetVMAFPath': self.label_vmafpath.text(), 'ShutdownAfter': self.checkBox_shutdown.isChecked(),
-                'usinglsmas' : self.checkBox_lsmash.isChecked(), 'splitmethod': self.comboBox_splitmode.currentIndex()
+                'usinglsmas' : self.checkBox_lsmash.isChecked(), 'splitmethod': self.comboBox_splitmode.currentIndex(),
+                'qjobs' : self.spinBox_qjobs.value()
                 }
 
     def getArgs(self):
@@ -844,7 +880,10 @@ class window(QMainWindow, Ui_qencoder):
             return
         self.encodeVideo1()
         self.runningEncode = True
-        self.worker = EncodeWorker(self.encodeList, self, self.checkBox_shutdown.isChecked())
+        self.runningQueueMode = True
+        self.currentFrames = [0] * len(self.encodeList)
+        self.totalFrames = [0] * len(self.encodeList)
+        self.worker = EncodeWorker(self.encodeList, self, self.checkBox_shutdown.isChecked(), self.spinBox_qjobs.value())
         self.workerThread = QtCore.QThread()
         self.worker.newFrames.connect(self.addFrames)
         self.worker.startEncode.connect(self.startEncode)
@@ -862,7 +901,8 @@ class window(QMainWindow, Ui_qencoder):
         self.encodeVideo1()
         print("Running in non-queued mode with a single video")
         self.runningEncode = True
-        self.worker = EncodeWorker([args], self, self.checkBox_shutdown.isChecked())
+        self.runningQueueMode = False
+        self.worker = EncodeWorker([args], self, self.checkBox_shutdown.isChecked(), 1)
         self.workerThread = QtCore.QThread()
         self.worker.newFrames.connect(self.addFrames)
         self.worker.startEncode.connect(self.startEncode)
@@ -977,6 +1017,8 @@ class window(QMainWindow, Ui_qencoder):
         self.checkBox_lsmash.setEnabled(0)
         self.comboBox_splitmode.setEnabled(0)
         self.label_splitmode.setEnabled(0)
+        self.label_qjobs.setEnabled(0)
+        self.spinBox_qjobs.setEnabled(0)
 
     def finalizeEncode(self):
         self.workerThread.quit()
@@ -1069,6 +1111,8 @@ class window(QMainWindow, Ui_qencoder):
         self.actionReset_All_Settings.setEnabled(1)
         self.checkBox_cropping.setEnabled(1)
         self.checkBox_rescale.setEnabled(1)
+        self.label_qjobs.setEnabled(1)
+        self.spinBox_qjobs.setEnabled(1)
         self.checkBox_lsmash.setEnabled(self.hasLsmash)
         self.enableCropping()
         self.enableRescale()
@@ -1083,40 +1127,37 @@ class EncodeWorker(QtCore.QObject):
     newFrames = QtCore.pyqtSignal(str, int)
     runningPav1n = False
 
-    def __init__(self, argdata, window, shutdown):
+    def __init__(self, argdata, window, shutdown, numcores):
         super().__init__()
         self.argdat = argdata
         self.window = window
         self.shutdown = shutdown
+        self.numcores = numcores
         self.istty = sys.stdin.isatty()
 
-    def runProcessing(self, dictargs):
+    def runProcessing(self, dictargs, index):
         self.window.scenedetectFailState = -1
         c = Callbacks()
-        c.subscribe("newtask", self.newTask.emit, "0")
-        c.subscribe("startencode", self.startEncode.emit, "0")
-        c.subscribe("newframes", self.newFrames.emit, "0")
-        c.subscribe("terminate", self.encodeFinished.emit, "0")
+        c.subscribe("newtask", self.newTask.emit, str(index))
+        c.subscribe("startencode", self.startEncode.emit, str(index))
+        c.subscribe("newframes", self.newFrames.emit, str(index))
+        c.subscribe("terminate", self.encodeFinished.emit, str(index))
         backend = run(dictargs, c)
         print("\n\nEncode completed for " + str(dictargs['input']) + " -> " + str(dictargs['output_file']))
 
     def runInternal(self):
         print("Running")
-        try:
-            for i in range(len(self.argdat)):
-                if len(self.argdat) > 1:
-                    self.runningPav1n = True
-                    self.runProcessing(self.argdat[i][0])
-                    while self.runningPav1n:
-                        sleep(0.1)
-                else:
-                    self.runningPav1n = True
-                    self.runProcessing(self.argdat[i][0])
-                    while self.runningPav1n:
-                        sleep(0.1)
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
+        self.runningPav1n = True
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.numcores) as executor:
+            future_cmd = {executor.submit(self.runProcessing, self.argdat[i][0], i): i for i in range(len(self.argdat))}
+            for future in concurrent.futures.as_completed(future_cmd):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(e)
+                    traceback.print_exc()
+        if len(self.argdat) > 1:
+            self.encodeFinished.emit("-1", 0)
         if self.shutdown:
             if sys.platform.startswith('win'):
                 os.system('shutdown -s')

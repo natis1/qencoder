@@ -1472,6 +1472,29 @@
         <item row="1" column="0" colspan="8">
          <widget class="QListWidget" name="listWidget"/>
         </item>
+        <item row="2" column="2">
+         <widget class="QSpinBox" name="spinBox_qjobs">
+          <property name="statusTip">
+           <string>Number of items from the queue to encode simultaneously.</string>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>128</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_qjobs">
+          <property name="statusTip">
+           <string>Number of items from the queue to encode simultaneously.</string>
+          </property>
+          <property name="text">
+           <string>Queue jobs:</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </widget>

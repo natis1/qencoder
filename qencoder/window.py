@@ -26,6 +26,7 @@ import threading
 import pickle
 
 canLoadScenedetect = 1
+
 try:
     from scenedetect.video_manager import VideoManager
 except ImportError as e:
@@ -40,6 +41,9 @@ except:
     hasLsmash = 0
     print("Error loading lsmash. Either vapoursynth is missing or lsmash is not installed.")
 
+if sys.platform.startswith('win'):
+    hasLsmash = 0
+    print("Lsmash does not work properly on windows. Please switch to Linux or wait for qencoder 2.0 to properly release for a fix.")
 
 # baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
 

@@ -155,7 +155,7 @@ class window(QMainWindow, Ui_qencoder):
         try:
             filehandler = open(self.configpath, 'rb')
             settings = pickle.load(filehandler)
-            self.setFromPresetDict(settings)
+            self.setFromPresetDict(settings, False)
             self.enableCropping()
             self.enableRescale()
             self.enableDisableVmaf()
@@ -258,7 +258,7 @@ class window(QMainWindow, Ui_qencoder):
         if buttonReply != QMessageBox.Yes:
             return
         else:
-            self.setFromPresetDict(self.encodeList[self.listWidget.currentRow()][1])
+            self.setFromPresetDict(self.encodeList[self.listWidget.currentRow()][1], True)
             self.inputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['input']))
             self.outputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['output_file']))
             self.pushButton.setEnabled(1)
@@ -355,7 +355,7 @@ class window(QMainWindow, Ui_qencoder):
             return
         filehandler = open(filename[0], 'rb')
         tempdict = pickle.load(filehandler)
-        self.setFromPresetDict(tempdict)
+        self.setFromPresetDict(tempdict, True)
 
     def savePresetAs(self):
         filename = QFileDialog.getSaveFileName(filter="Qencoder encoder config (*.qec)")
@@ -775,7 +775,7 @@ class window(QMainWindow, Ui_qencoder):
         else:
             return "1920x1080"
 
-    def setFromPresetDict(self, dict):
+    def setFromPresetDict(self, dict, restoreCropping):
         # 1.1 variables
         self.comboBox_encoder.setCurrentIndex(dict['enc'])
         self.changeEncoder(dict['enc'])
@@ -828,6 +828,15 @@ class window(QMainWindow, Ui_qencoder):
         self.checkBox_lsmash.setChecked(dict['usinglsmas'])
         self.comboBox_splitmode.setCurrentIndex(dict['splitmethod'])
         self.spinBox_qjobs.setValue(dict['qjobs'])
+        if (restoreCropping):
+            self.checkBox_cropping.setChecked(dict["iscropping"])
+            self.checkBox_rescale.setChecked(dict["rescale"])
+            self.spinBox_xres.setValue(dict["rescalex"])
+            self.spinBox_yres.setValue(dict["rescaley"])
+            self.spinBox_croptop.setValue(dict["croptop"])
+            self.spinBox_cropdown.setValue(dict["cropdown"])
+            self.spinBox_cropright.setValue(dict["cropright"])
+            self.spinBox_cropleft.setValue(dict["cropleft"])
 
     def getPresetDict(self):
         return {'2p': self.checkBox_twopass.isChecked(), 'audio': self.checkBox_audio.isChecked(),
@@ -851,7 +860,11 @@ class window(QMainWindow, Ui_qencoder):
                 'TargetVMAFSteps': self.spinBox_vmafsteps.value(), 'TargetVMAFValue': self.doubleSpinBox_vmaf.value(),
                 'TargetVMAFPath': self.label_vmafpath.text(), 'ShutdownAfter': self.checkBox_shutdown.isChecked(),
                 'usinglsmas' : self.checkBox_lsmash.isChecked(), 'splitmethod': self.comboBox_splitmode.currentIndex(),
-                'qjobs' : self.spinBox_qjobs.value()
+                'qjobs' : self.spinBox_qjobs.value(), 'iscropping' : self.checkBox_cropping.isChecked(),
+                'croptop' : self.spinBox_croptop.value(), 'cropright' : self.spinBox_cropright.value(),
+                'cropleft' : self.spinBox_cropleft.value(), 'cropdown' : self.spinBox_cropdown.value(),
+                'rescale' : self.checkBox_rescale.isChecked(), 'rescalex' : self.spinBox_xres.value(),
+                'rescaley' : self.spinBox_yres.value()
                 }
 
     def getArgs(self):

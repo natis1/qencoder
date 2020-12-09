@@ -816,6 +816,9 @@
           </item>
           <item row="2" column="3">
            <widget class="QLabel" name="label_splitmode">
+            <property name="statusTip">
+             <string>ffmpeg is recommended for most encodes.</string>
+            </property>
             <property name="text">
              <string>Split Mode</string>
             </property>
@@ -823,9 +826,12 @@
           </item>
           <item row="2" column="4">
            <widget class="QComboBox" name="comboBox_splitmode">
+            <property name="statusTip">
+             <string>ffmpeg is recommended for most encodes.</string>
+            </property>
             <item>
              <property name="text">
-              <string>ffmpeg (best)</string>
+              <string>ffmpeg</string>
              </property>
             </item>
             <item>

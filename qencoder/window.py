@@ -21,7 +21,7 @@ from pathlib import Path
 import os
 from time import sleep
 import psutil
-import threading
+import multiprocessing
 
 import pickle
 
@@ -1064,6 +1064,8 @@ class window(QMainWindow, Ui_qencoder):
         self.label_q.setEnabled(1)
         self.checkBox_shutdown.setEnabled(1)
         self.label_split.setEnabled(1)
+        self.comboBox_splitmode.setEnabled(1)
+        self.label_splitmode.setEnabled(1)
         if self.comboBox_splitmode.currentIndex() != 1:
             self.doubleSpinBox_split.setEnabled(1)
 
@@ -1153,16 +1155,29 @@ class EncodeWorker(QtCore.QObject):
         self.istty = sys.stdin.isatty()
 
     def runProcessing(self, dictargs, index):
+        if self.window.killFlag:
+            return
         self.window.scenedetectFailState = -1
         c = Callbacks()
         c.subscribe("newtask", self.newTask.emit, str(index))
         c.subscribe("startencode", self.startEncode.emit, str(index))
         c.subscribe("newframes", self.newFrames.emit, str(index))
         c.subscribe("terminate", self.encodeFinished.emit, str(index))
-        backend = run(dictargs, c)
+
+        t = multiprocessing.Process(target=run, args=(dictargs, c))
+        t.start()
+        while t.is_alive():
+            sleep(0.05)
+            if self.window.killFlag:
+                print("Killing all children processes. Hopefully this works.")
+                parent = psutil.Process(os.getpid())
+                for child in parent.children(recursive=True):  # or parent.children() for recursive=False
+                    child.kill()
+                t.join()
+                return
         print("\n\nEncode completed for " + str(dictargs['input']) + " -> " + str(dictargs['output_file']))
 
-    def runInternal(self):
+    def run(self):
         print("Running")
         self.runningPav1n = True
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.numcores) as executor:
@@ -1185,14 +1200,3 @@ class EncodeWorker(QtCore.QObject):
                     # If that doesn't work we can try shutting down the "other" way
                     os.system("shutdown now -h")
 
-    def run(self):
-        t = threading.Thread(target=self.runInternal)
-        t.start()
-        while t.is_alive():
-            sleep(0.05)
-            if self.window.killFlag:
-                print("Killing all children processes. Hopefully this works.")
-                parent = psutil.Process(os.getpid())
-                for child in parent.children(recursive=True):  # or parent.children() for recursive=False
-                    child.kill()
-                t.join()

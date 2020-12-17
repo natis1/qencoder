@@ -226,12 +226,16 @@ class window(QMainWindow, Ui_qencoder):
 
     def addFolderToQueue(self):
         buttonReply = QMessageBox.question(self, 'Add folder to queue?',
-                                           "The folder chosen will have all detected video files in it added to the queue using the current settings. Will output to enc_[filename] in the same folder. Make sure your settings are correct before doing this. Continue?",
+                                           "The folder chosen will have all detected video files in it added to the queue using the current settings. Make sure your settings are correct before doing this. Continue?",
                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if buttonReply != QMessageBox.Yes:
             return
         else:
-            foldername = QFileDialog.getExistingDirectory()
+            foldername = QFileDialog.getExistingDirectory(caption="Input Folder")
+            newfoldername = QFileDialog.getExistingDirectory(caption="Output Folder")
+            add_enc = False
+            if foldername == newfoldername:
+                add_enc = True
             types = ('*.mkv', '*.mp4', '*.webm', '*.y4m', '*.avi')
             files_grabbed = []
             for files in types:
@@ -239,8 +243,9 @@ class window(QMainWindow, Ui_qencoder):
             for fil in files_grabbed:
                 self.inputPath.setText(fil)
                 dirn, fname = os.path.split(fil)
-                fname = "enc_" + fname
-                if not fname.endswith(".mkv") or not fname.endswith(".webm"):
+                if add_enc:
+                    fname = "enc_" + fname
+                if not fname.endswith(".mkv") and not fname.endswith(".webm"):
                     fname = fname + ".mkv"
                 self.outputPath.setText(os.path.join(dirn, fname))
                 self.saveToQueue()

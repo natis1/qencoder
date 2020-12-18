@@ -242,6 +242,8 @@ class window(QMainWindow, Ui_qencoder):
             for files in types:
                 files_grabbed.extend(glob.glob(foldername + "/" + files))
             for fil in files_grabbed:
+                if os.path.isdir(fil):
+                    continue
                 self.inputPath.setText(fil)
                 dirn, fname = os.path.split(fil)
                 if add_enc:
@@ -1013,7 +1015,6 @@ class window(QMainWindow, Ui_qencoder):
         self.inputPath.setText("")
         self.outputPath.setText("")
         self.pushButton_del.setEnabled(0)
-        self.listWidget.setEnabled(0)
         self.label_maxkfdist.setEnabled(0)
         self.spinBox_maxkfdist.setEnabled(0)
         self.pushButton_edit.setEnabled(0)
@@ -1121,7 +1122,6 @@ class window(QMainWindow, Ui_qencoder):
         self.pushButton_down.setEnabled(1)
         self.pushButton_del.setEnabled(1)
         self.pushButton_edit.setEnabled(1)
-        self.listWidget.setEnabled(1)
         self.pushButton_save.setEnabled(0)
         self.progressBar_total.setValue(0)
         self.pushButton.setEnabled(0)

@@ -506,9 +506,9 @@ class window(QMainWindow, Ui_qencoder):
         if (self.comboBox_encoder.currentIndex() == 0):
             return (8 - self.presetbox.currentIndex())
         if (self.comboBox_encoder.currentIndex() == 1):
-            return int((self.presetbox.currentIndex()) * 1.125)  # Maps the presets between 0 and 9
+            return int((8 - self.presetbox.currentIndex()) * 1.125)  # Maps the presets between 0 and 9
         if (self.comboBox_encoder.currentIndex() == 2):
-            return int((self.presetbox.currentIndex()) * 2.0)  # Maps the presets between 0 and 16
+            return int((8 - self.presetbox.currentIndex()) * 2.0)  # Maps the presets between 0 and 16
         return 0
 
     def getColorData(self):

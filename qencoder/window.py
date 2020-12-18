@@ -4,6 +4,7 @@ import glob
 import shlex
 import concurrent
 import concurrent.futures
+import threading
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox
@@ -505,9 +506,9 @@ class window(QMainWindow, Ui_qencoder):
         if (self.comboBox_encoder.currentIndex() == 0):
             return (8 - self.presetbox.currentIndex())
         if (self.comboBox_encoder.currentIndex() == 1):
-            return -int((self.presetbox.currentIndex() - 4) * 2.25)  # Maps the presets between -9 and 9
+            return int((self.presetbox.currentIndex()) * 1.125)  # Maps the presets between 0 and 9
         if (self.comboBox_encoder.currentIndex() == 2):
-            return -int((self.presetbox.currentIndex() - 4) * 4.125)  # Maps the presets between -16 and 16
+            return int((self.presetbox.currentIndex()) * 2.0)  # Maps the presets between 0 and 16
         return 0
 
     def getColorData(self):
@@ -530,10 +531,10 @@ class window(QMainWindow, Ui_qencoder):
             self.spinBox_speed.setMinimum(0)
         elif (newencoder == 1):
             self.spinBox_speed.setMaximum(9)
-            self.spinBox_speed.setMinimum(-9)
+            self.spinBox_speed.setMinimum(0)
         else:
             self.spinBox_speed.setMaximum(16)
-            self.spinBox_speed.setMinimum(-16)
+            self.spinBox_speed.setMinimum(0)
         self.spinBox_speed.setValue(self.getCPUUsed())
         self.lineEdit_colordata.setText(self.getColorData())
         self.presetbox.setCurrentIndex(spdpreset)
@@ -1169,16 +1170,15 @@ class EncodeWorker(QtCore.QObject):
         c.subscribe("newframes", self.newFrames.emit, str(index))
         c.subscribe("terminate", self.encodeFinished.emit, str(index))
 
-        t = multiprocessing.Process(target=run, args=(dictargs, c))
+        t = threading.Thread(target=run, args=(dictargs, c))
         t.start()
         while t.is_alive():
             sleep(0.05)
             if self.window.killFlag:
-                print("Killing all children processes. Hopefully this works.")
-                parent = psutil.Process(os.getpid())
-                for child in parent.children(recursive=True):  # or parent.children() for recursive=False
+                me = psutil.Process(os.getpid())
+                for child in me.children(recursive=True):
                     child.kill()
-                t.join()
+                os.execl(sys.executable, sys.executable, *sys.argv)
                 return
         print("\n\nEncode completed for " + str(dictargs['input']) + " -> " + str(dictargs['output_file']))
 
@@ -1204,4 +1204,3 @@ class EncodeWorker(QtCore.QObject):
                 except Exception as e:
                     # If that doesn't work we can try shutting down the "other" way
                     os.system("shutdown now -h")
-

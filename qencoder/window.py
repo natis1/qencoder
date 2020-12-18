@@ -733,6 +733,8 @@ class window(QMainWindow, Ui_qencoder):
             vparams += " --bit-depth=10 "
         else:
             vparams += " --bit-depth=8 "
+        input_depth = 8 + 2 * (self.comboBox_inputFormat.currentIndex() % 3)
+        vparams += "--input-bit-depth=" + str(input_depth) + " "
         vparams += self.lineEdit_colordata.text()
         if (self.comboBox_inputFormat.currentIndex() <= 2):
             vparams += " --i420"

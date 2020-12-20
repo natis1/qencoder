@@ -250,7 +250,7 @@ class window(QMainWindow, Ui_qencoder):
                     fname = "enc_" + fname
                 if not fname.endswith(".mkv") and not fname.endswith(".webm"):
                     fname = fname + ".mkv"
-                self.outputPath.setText(os.path.join(dirn, fname))
+                self.outputPath.setText(os.path.join(newfoldername, fname))
                 self.saveToQueue()
             self.inputPath.setText("")
             self.outputPath.setText("")

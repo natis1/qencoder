@@ -1,10 +1,10 @@
 import setuptools
 
 REQUIRES = [
+    'PyQt5',
     'opencv-python',
     'psutil',
     'parallelencode',
-    'PyQt5',
 ]
 
 with open("README.md", "r") as f:
@@ -12,7 +12,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="qencoder",
-    version="2.0",
+    version="2.0.1",
     author="Eli Stone",
     author_email="eli.stonium@gmail.com",
     description="Qt graphical interface for encoding",

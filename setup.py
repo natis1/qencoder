@@ -2,7 +2,6 @@ import setuptools
 
 REQUIRES = [
     'PyQt5',
-    'opencv-python-headless',
     'psutil',
     'parallelencode',
 ]

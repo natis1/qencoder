@@ -1,4 +1,4 @@
 psutil
 PyQt5
-opencv-python
+opencv-python-headless
 parallelencode

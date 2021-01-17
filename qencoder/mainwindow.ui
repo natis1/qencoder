@@ -83,27 +83,6 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Source</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QPushButton" name="outputFileChoose">
-        <property name="text">
-         <string>Save to...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Output</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLabel" name="inputPath">
         <property name="sizePolicy">
@@ -120,6 +99,27 @@
         </property>
         <property name="wordWrap">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QPushButton" name="outputFileChoose">
+        <property name="text">
+         <string>Save to...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Source</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Output</string>
         </property>
        </widget>
       </item>
@@ -479,6 +479,75 @@
         </item>
         <item row="1" column="0">
          <layout class="QGridLayout" name="gridLayout">
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="doubleSpinBox_split">
+            <property name="statusTip">
+             <string>0-1 for ffmpeg, 0-100 for scenedetect. Lower=more splits made. Suggested value ~30%</string>
+            </property>
+            <property name="decimals">
+             <number>3</number>
+            </property>
+            <property name="maximum">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.010000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.300000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_6">
+            <property name="statusTip">
+             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+            </property>
+            <property name="text">
+             <string>cpu-used (speed)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0" colspan="5">
+           <widget class="QLineEdit" name="lineEdit_colordata">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="4">
+           <widget class="QCheckBox" name="checkBox_hdr">
+            <property name="statusTip">
+             <string>Use 10 bit colorspace for output video. Greatly reduces banding and improves efficiency.</string>
+            </property>
+            <property name="text">
+             <string>10 bit output</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="4">
+           <widget class="QCheckBox" name="checkBox_tempfolder">
+            <property name="statusTip">
+             <string>Do not delete temp after running an encode.</string>
+            </property>
+            <property name="text">
+             <string>Keep temp folder</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_split">
+            <property name="statusTip">
+             <string>0-1 for ffmpeg, 0-100 for scenedetect. Lower=more splits made. Suggested value ~30%</string>
+            </property>
+            <property name="text">
+             <string>Split threshold</string>
+            </property>
+           </widget>
+          </item>
           <item row="3" column="4">
            <widget class="QSpinBox" name="spinBox_threads">
             <property name="statusTip">
@@ -495,43 +564,26 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="label_2">
+          <item row="2" column="3">
+           <widget class="QLabel" name="label_splitmode">
             <property name="statusTip">
-             <string>The input colordata for your video. Leave default if unsure.</string>
+             <string>ffmpeg is recommended for most encodes.</string>
             </property>
             <property name="text">
-             <string>Input Colordata</string>
+             <string>Split Mode</string>
             </property>
            </widget>
           </item>
-          <item row="5" column="3">
-           <widget class="QCheckBox" name="checkBox_rtenc">
+          <item row="4" column="3">
+           <widget class="QCheckBox" name="checkBox_resume">
             <property name="statusTip">
-             <string>Encode with RT preset. Not recommended for cpu-used &lt;=6.</string>
+             <string>If qencoder closed prematurely, resume previous encode.</string>
             </property>
             <property name="text">
-             <string>Realtime Encoding</string>
+             <string>Resume Encode</string>
             </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QCheckBox" name="checkBox_bitrate">
-            <property name="statusTip">
-             <string>Use bitrate instead of q factor. Ideal if aiming for specific filesize. Identical to q in efficiency.</string>
-            </property>
-            <property name="text">
-             <string>Use Bitrate</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="3">
-           <widget class="QLabel" name="label_threads">
-            <property name="statusTip">
-             <string>Fewer threads per job and more jobs is usually recommended.</string>
-            </property>
-            <property name="text">
-             <string>Threads Per Job</string>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -551,26 +603,142 @@
             </property>
            </spacer>
           </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_6">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_q">
             <property name="statusTip">
-             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+             <string>Constant rate factor (Q): quality of video (lower numbers = more quality). Bitrate: target video kbps to use.</string>
             </property>
             <property name="text">
-             <string>cpu-used (speed)</string>
+             <string>CRF</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
-           <widget class="QSpinBox" name="spinBox_speed">
+          <item row="2" column="1">
+           <widget class="QSpinBox" name="spinBox_jobs">
             <property name="statusTip">
-             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
+             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
+            </property>
+            <property name="minimum">
+             <number>0</number>
             </property>
             <property name="maximum">
-             <number>8</number>
+             <number>128</number>
+            </property>
+            <property name="singleStep">
+             <number>1</number>
             </property>
             <property name="value">
-             <number>4</number>
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_inputformat">
+            <property name="statusTip">
+             <string>Pixel format of input. Usually yuv420p (8b) or yuv420p10le (10b). If unsure leave default.</string>
+            </property>
+            <property name="text">
+             <string>Input Format</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="4">
+           <widget class="QComboBox" name="comboBox_splitmode">
+            <property name="statusTip">
+             <string>ffmpeg is recommended for most encodes.</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>ffmpeg</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>time (fastest)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>pyscenedetect</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_jobs">
+            <property name="statusTip">
+             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
+            </property>
+            <property name="text">
+             <string>Jobs</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QComboBox" name="comboBox_colorspace">
+            <property name="statusTip">
+             <string>The input colordata for your video. Leave default if unsure.</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>Auto (recommended)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>HD SDR (bt709)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Classic SDR (bt601)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>HDR (bt-2020)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Custom</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="4">
+           <widget class="QSpinBox" name="spinBox_maxkfdist">
+            <property name="statusTip">
+             <string>Distance between keyframes in frames. Lower helps with seeking but increases size. Used by time splitting.</string>
+            </property>
+            <property name="maximum">
+             <number>9998</number>
+            </property>
+            <property name="singleStep">
+             <number>10</number>
+            </property>
+            <property name="value">
+             <number>240</number>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="3">
+           <widget class="QCheckBox" name="checkBox_rtenc">
+            <property name="statusTip">
+             <string>Encode with RT preset. Not recommended for cpu-used &lt;=6.</string>
+            </property>
+            <property name="text">
+             <string>Realtime Encoding</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="label_maxkfdist">
+            <property name="statusTip">
+             <string>Distance between keyframes in frames. Lower helps with seeking but increases size. Used by time splitting.</string>
+            </property>
+            <property name="text">
+             <string>Max kf distance</string>
             </property>
            </widget>
           </item>
@@ -590,76 +758,13 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="0" colspan="5">
-           <widget class="QLineEdit" name="lineEdit_colordata">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_split">
+          <item row="3" column="3">
+           <widget class="QLabel" name="label_threads">
             <property name="statusTip">
-             <string>0-1 for ffmpeg, 0-100 for scenedetect. Lower=more splits made. Suggested value ~30%</string>
+             <string>Fewer threads per job and more jobs is usually recommended.</string>
             </property>
             <property name="text">
-             <string>Split threshold</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_inputformat">
-            <property name="statusTip">
-             <string>Pixel format of input. Usually yuv420p (8b) or yuv420p10le (10b). If unsure leave default.</string>
-            </property>
-            <property name="text">
-             <string>Input Format</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="3">
-           <widget class="QCheckBox" name="checkBox_resume">
-            <property name="statusTip">
-             <string>If qencoder closed prematurely, resume previous encode.</string>
-            </property>
-            <property name="text">
-             <string>Resume Encode</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="4">
-           <widget class="QCheckBox" name="checkBox_tempfolder">
-            <property name="statusTip">
-             <string>Do not delete temp after running an encode.</string>
-            </property>
-            <property name="text">
-             <string>Keep temp folder</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_q">
-            <property name="statusTip">
-             <string>Constant rate factor (Q): quality of video (lower numbers = more quality). Bitrate: target video kbps to use.</string>
-            </property>
-            <property name="text">
-             <string>CRF</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_jobs">
-            <property name="statusTip">
-             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
-            </property>
-            <property name="text">
-             <string>Jobs</string>
+             <string>Threads Per Job</string>
             </property>
            </widget>
           </item>
@@ -727,141 +832,36 @@
             </item>
            </widget>
           </item>
-          <item row="4" column="4">
-           <widget class="QCheckBox" name="checkBox_hdr">
-            <property name="statusTip">
-             <string>Use 10 bit colorspace for output video. Greatly reduces banding and improves efficiency.</string>
-            </property>
-            <property name="text">
-             <string>10 bit output</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QSpinBox" name="spinBox_jobs">
-            <property name="statusTip">
-             <string>Encode jobs to run. 0=as many as cpu cores. Lower if ram usage too high.</string>
-            </property>
-            <property name="minimum">
-             <number>0</number>
-            </property>
-            <property name="maximum">
-             <number>128</number>
-            </property>
-            <property name="singleStep">
-             <number>1</number>
-            </property>
-            <property name="value">
-             <number>0</number>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="1">
-           <widget class="QComboBox" name="comboBox_colorspace">
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_2">
             <property name="statusTip">
              <string>The input colordata for your video. Leave default if unsure.</string>
             </property>
-            <item>
-             <property name="text">
-              <string>Auto (recommended)</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>HD SDR (bt709)</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Classic SDR (bt601)</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>HDR (bt-2020)</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Custom</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QLabel" name="label_maxkfdist">
-            <property name="statusTip">
-             <string>Distance between keyframes in frames. Lower helps with seeking but increases size. Used by time splitting.</string>
-            </property>
             <property name="text">
-             <string>Max kf distance</string>
+             <string>Input Colordata</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="4">
-           <widget class="QSpinBox" name="spinBox_maxkfdist">
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="spinBox_speed">
             <property name="statusTip">
-             <string>Distance between keyframes in frames. Lower helps with seeking but increases size. Used by time splitting.</string>
+             <string>Encoder speed preset. Lower means a slower speed. Does not affect actual cpu usage.</string>
             </property>
             <property name="maximum">
-             <number>9998</number>
-            </property>
-            <property name="singleStep">
-             <number>10</number>
+             <number>8</number>
             </property>
             <property name="value">
-             <number>240</number>
+             <number>4</number>
             </property>
            </widget>
           </item>
-          <item row="2" column="3">
-           <widget class="QLabel" name="label_splitmode">
+          <item row="0" column="3">
+           <widget class="QCheckBox" name="checkBox_bitrate">
             <property name="statusTip">
-             <string>ffmpeg is recommended for most encodes.</string>
+             <string>Use bitrate instead of q factor. Ideal if aiming for specific filesize. Identical to q in efficiency.</string>
             </property>
             <property name="text">
-             <string>Split Mode</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="4">
-           <widget class="QComboBox" name="comboBox_splitmode">
-            <property name="statusTip">
-             <string>ffmpeg is recommended for most encodes.</string>
-            </property>
-            <item>
-             <property name="text">
-              <string>ffmpeg</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>time (fastest)</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>pyscenedetect</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QDoubleSpinBox" name="doubleSpinBox_split">
-            <property name="statusTip">
-             <string>0-1 for ffmpeg, 0-100 for scenedetect. Lower=more splits made. Suggested value ~30%</string>
-            </property>
-            <property name="decimals">
-             <number>3</number>
-            </property>
-            <property name="maximum">
-             <double>1.000000000000000</double>
-            </property>
-            <property name="singleStep">
-             <double>0.010000000000000</double>
-            </property>
-            <property name="value">
-             <double>0.300000000000000</double>
+             <string>Use Bitrate</string>
             </property>
            </widget>
           </item>

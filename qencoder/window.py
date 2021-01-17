@@ -13,8 +13,11 @@ from functools import partial
 import signal
 import sys
 
+from qencoder.av1anworkarounds import run_av1an, get_av1an, get_av1an_proj, merge_args
 from qencoder.mainwindow import Ui_qencoder
-from parallelencode import Callbacks, run
+from av1an.arg_parse import Args
+from av1an.manager import Manager
+from av1an.startup.setup import startup_check
 
 import traceback
 
@@ -267,7 +270,7 @@ class window(QMainWindow, Ui_qencoder):
             return
         else:
             self.setFromPresetDict(self.encodeList[self.listWidget.currentRow()][1], True)
-            self.inputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['input']))
+            self.inputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['input'][0]))
             self.outputPath.setText(str(self.encodeList[self.listWidget.currentRow()][0]['output_file']))
             self.pushButton.setEnabled(1)
             self.pushButton_save.setEnabled(1)
@@ -448,12 +451,12 @@ class window(QMainWindow, Ui_qencoder):
 
     def getQueueIndexData(self, index):
         q = self.encodeList[index]
-        return str(q[0]['input'].parts[-1]) + " -> " + str(q[0]['output_file'].parts[-1])
+        return str(q[0]['input'][0].parts[-1]) + " -> " + str(q[0]['output_file'].parts[-1])
 
     def redrawQueueList(self):
         self.listWidget.clear()
         for i in self.encodeList:
-            inputFile = i[0]['input'].parts[-1]
+            inputFile = i[0]['input'][0].parts[-1]
             outputFile = i[0]['output_file'].parts[-1]
             finalString = inputFile + " -> " + outputFile
             if (i[1]['brmode']):
@@ -684,7 +687,7 @@ class window(QMainWindow, Ui_qencoder):
     def getFFMPEGParams(self):
         if (self.checkBox_ffmpegcmd.isChecked()):
             return self.textEdit_ffmpegcmd.toPlainText()
-        astr = ""
+        astr = " "
         addedStuff = False
         if (self.checkBox_cropping.isChecked() and (
                 self.spinBox_cropdown.value() > 0 or self.spinBox_cropright.value() > 0 or self.spinBox_croptop.value() > 0 or self.spinBox_cropleft.value() > 0)):
@@ -700,13 +703,13 @@ class window(QMainWindow, Ui_qencoder):
                 astr += "-filter:v \"scale=" + str(self.spinBox_xres.value()) + ":" + str(self.spinBox_yres.value())
                 addedStuff = True
         if (addedStuff):
-            astr += "\""
+            astr += "\" "
         return astr
 
     def getVideoParams(self):
         if (self.checkBox_videocmd.isChecked()):
             return self.textEdit_videocmd.toPlainText()
-        vparams = "--threads=" + str(self.spinBox_threads.value())
+        vparams = " --threads=" + str(self.spinBox_threads.value())
         if (self.spinBox_maxkfdist.value() > 0 and self.comboBox_splitmode.currentIndex() != 1):
             vparams += " --kf-max-dist=" + str(self.spinBox_maxkfdist.value())
         if (self.comboBox_encoder.currentIndex() < 2):
@@ -743,14 +746,14 @@ class window(QMainWindow, Ui_qencoder):
         elif (self.comboBox_inputFormat.currentIndex() <= 5):
             vparams += " --i422"
         else:
-            vparams += " --i444"
+            vparams += " --i444 "
         return vparams
 
     def getSplitMethod(self):
         if (self.comboBox_splitmode.currentIndex() == 0):
             return "ffmpeg"
         elif (self.comboBox_splitmode.currentIndex() == 1):
-            return "time"
+            return "none"
         else:
             return "pyscene"
 
@@ -789,7 +792,6 @@ class window(QMainWindow, Ui_qencoder):
         # 1.1 variables
         self.comboBox_encoder.setCurrentIndex(dict['enc'])
         self.changeEncoder(dict['enc'])
-        self.doubleSpinBox_split.setValue(dict['splittr'])
         self.spinBox_speed.setValue(dict['cpuused'])
         self.spinBox_jobs.setValue(dict['jobs'])
         self.spinBox_audio.setValue(dict['audiobr'])
@@ -837,8 +839,10 @@ class window(QMainWindow, Ui_qencoder):
         # 2.0 variables
         self.checkBox_lsmash.setChecked(dict['usinglsmas'])
         self.comboBox_splitmode.setCurrentIndex(dict['splitmethod'])
+        self.changeSplitmode(dict['splitmethod'])
+        self.doubleSpinBox_split.setValue(dict['splittr'])
         self.spinBox_qjobs.setValue(dict['qjobs'])
-        if (restoreCropping):
+        if restoreCropping:
             self.checkBox_cropping.setChecked(dict["iscropping"])
             self.checkBox_rescale.setChecked(dict["rescale"])
             self.spinBox_xres.setValue(dict["rescalex"])
@@ -878,23 +882,28 @@ class window(QMainWindow, Ui_qencoder):
                 }
 
     def getArgs(self):
-        args = {'video_params': shlex.split(self.getVideoParams()), 'input': Path(self.inputPath.text()), 'encoder': 'aom',
-                'workers': self.spinBox_jobs.value(), 'audio_params': shlex.split(self.getAudioParams()),
+        args = {'video_params': self.getVideoParams(), 'input': [Path(self.inputPath.text())], 'encoder': 'aom',
+                'workers': self.spinBox_jobs.value(), 'audio_params': self.getAudioParams(),
                 'threshold': self.doubleSpinBox_split.value(),
                 'passes': (2 if self.checkBox_twopass.isChecked() else 1), 'output_file': Path(self.outputPath.text()),
                 'scenes': None, 'resume': self.checkBox_resume.isChecked(),
                 'keep': self.checkBox_tempfolder.isChecked(),
-                'pix_format': self.comboBox_inputFormat.currentText(), 'ffmpeg': shlex.split(self.getFFMPEGParams()),
+                'pix_format': self.comboBox_inputFormat.currentText(), 'ffmpeg': self.getFFMPEGParams(),
                 'threads': self.spinBox_threads.value(),
                 'split_method': self.getSplitMethod(),
                 'chunk_method': ("vs_lsmash" if self.checkBox_lsmash.isChecked() and self.checkBox_lsmash.isEnabled() else "segment"),
                 'temp': Path(
                 str(os.path.dirname(self.outputPath.text())) + "/temp_" + str(
-                    os.path.basename(self.outputPath.text()))), 'vmaf_steps': self.spinBox_vmafsteps.value(),
+                    os.path.basename(self.outputPath.text()))), 'probes': self.spinBox_vmafsteps.value(),
                 'min_q': self.spinBox_minq.value(), 'max_q': self.spinBox_maxq.value(),
-                'vmaf_target': (self.doubleSpinBox_vmaf.value() if self.checkBox_vmaf.isChecked() else None),
+                'target_quality': (self.doubleSpinBox_vmaf.value() if self.checkBox_vmaf.isChecked() else None),
                 'vmaf_path': self.label_vmafpath.text(), 'vmaf_filter': self.getVmafFilter(),
-                'vmaf_res': self.getVmafRes(), 'time_split_interval': self.spinBox_maxkfdist.value()}
+                'vmaf_res': self.getVmafRes(), 'min_scene_len': 60, 'target_quality_method': 'per_shot',
+                'probing_rate' : 1, 'n_threads': self.spinBox_threads.value()}
+        if self.comboBox_splitmode.currentIndex() == 1:
+            args["extra_split"] = self.spinBox_maxkfdist.value()
+        else:
+            args["extra_split"] = None
 
         if self.comboBox_encoder.currentIndex() >= 1:
             args['encoder'] = 'vpx'
@@ -1150,7 +1159,7 @@ class window(QMainWindow, Ui_qencoder):
 class EncodeWorker(QtCore.QObject):
     newTask = QtCore.pyqtSignal(str, str, int)
     startEncode = QtCore.pyqtSignal(str, int, int)
-    encodeFinished = QtCore.pyqtSignal(str, bool)
+    encodeFinished = QtCore.pyqtSignal(str, int)
     newFrames = QtCore.pyqtSignal(str, int)
     runningPav1n = False
 
@@ -1166,25 +1175,35 @@ class EncodeWorker(QtCore.QObject):
         if self.window.killFlag:
             return
         self.window.scenedetectFailState = -1
-        c = Callbacks()
-        c.subscribe("newtask", self.newTask.emit, str(index))
-        c.subscribe("startencode", self.startEncode.emit, str(index))
-        c.subscribe("newframes", self.newFrames.emit, str(index))
-        c.subscribe("terminate", self.encodeFinished.emit, str(index))
-
-        t = threading.Thread(target=run, args=(dictargs, c))
+        av1an = get_av1an(get_av1an_proj(merge_args(dictargs)))
+        proj = av1an.projects[0]
+        state = [0, 0, 0]
+        t = threading.Thread(target=run_av1an, args=[av1an])
         t.start()
         while t.is_alive():
-            sleep(0.05)
+            if state[2] == 0:
+                state[2] = proj.frames
+                if state[2] != 0:
+                    state[0] = 1
+                    self.startEncode.emit(str(index), state[2], 0)
+            if proj.counter is not None:
+                prev = state[1]
+                state[1] = proj.counter.get_frames()
+                if prev != state[1]:
+                    self.newFrames.emit(str(index), state[1] - prev)
+            sleep(0.5)
             if self.window.killFlag:
+                self.encodeFinished.emit(str(index), 1)
                 me = psutil.Process(os.getpid())
                 for child in me.children(recursive=True):
                     child.kill()
                 os.execl(sys.executable, sys.executable, *sys.argv)
                 return
+        self.encodeFinished.emit(str(index), 0)
         print("\n\nEncode completed for " + str(dictargs['input']) + " -> " + str(dictargs['output_file']))
 
     def run(self):
+
         print("Running")
         self.runningPav1n = True
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.numcores) as executor:

@@ -3,7 +3,7 @@ import setuptools
 REQUIRES = [
     'PyQt5',
     'psutil',
-    'parallelencode',
+    'Av1an-minimal',
 ]
 
 with open("README.md", "r") as f:
@@ -11,7 +11,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="qencoder",
-    version="2.0.2",
+    version="2.1",
     author="Eli Stone",
     author_email="eli.stonium@gmail.com",
     description="Qt graphical interface for encoding",

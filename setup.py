@@ -3,7 +3,7 @@ import setuptools
 REQUIRES = [
     'PyQt5',
     'psutil',
-    'Av1an-minimal',
+    'Av1an',
 ]
 
 with open("README.md", "r") as f:
@@ -11,7 +11,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="qencoder",
-    version="2.1",
+    version="2.1.2",
     author="Eli Stone",
     author_email="eli.stonium@gmail.com",
     description="Qt graphical interface for encoding",
@@ -20,7 +20,7 @@ setuptools.setup(
     url="https://github.com/natis1/qencoder",
     packages=setuptools.find_packages('.', exclude='tests'),
     install_requires=REQUIRES,
-    py_modules=['qenc', 'qencoder/mainwindow', 'qencoder/window'],
+    py_modules=['qenc', 'qencoder/mainwindow', 'qencoder/window', 'qencoder/av1anworkarounds'],
     entry_points={"console_scripts": ["qencoder=qenc:main"]},
     classifiers=[
         "Programming Language :: Python :: 3",

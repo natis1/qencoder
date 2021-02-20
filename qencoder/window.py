@@ -899,7 +899,7 @@ class window(QMainWindow, Ui_qencoder):
                 'target_quality': (self.doubleSpinBox_vmaf.value() if self.checkBox_vmaf.isChecked() else None),
                 'vmaf_path': self.label_vmafpath.text(), 'vmaf_filter': self.getVmafFilter(),
                 'vmaf_res': self.getVmafRes(), 'min_scene_len': 60, 'target_quality_method': 'per_shot',
-                'probing_rate' : 1, 'n_threads': self.spinBox_threads.value()}
+                'probing_rate' : 2, 'n_threads': self.spinBox_threads.value()}
         if self.comboBox_splitmode.currentIndex() == 1:
             args["extra_split"] = self.spinBox_maxkfdist.value()
         else:

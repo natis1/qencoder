@@ -13,7 +13,7 @@ from functools import partial
 import signal
 import sys
 
-from qencoder.av1anworkarounds import run_av1an, get_av1an, get_av1an_proj, merge_args
+from qencoder.av1anworkarounds import run_av1an, get_av1an, get_av1an_proj, merge_args, done_count
 from qencoder.mainwindow import Ui_qencoder
 from av1an.arg_parse import Args
 from av1an.manager import Manager
@@ -26,6 +26,7 @@ import os
 from time import sleep
 import psutil
 import multiprocessing
+from multiprocessing.managers import BaseManager, NamespaceProxy
 
 import pickle
 
@@ -44,10 +45,6 @@ try:
 except:
     hasLsmash = 0
     print("Error loading lsmash. Either vapoursynth is missing or lsmash is not installed.")
-
-if sys.platform.startswith('win'):
-    hasLsmash = 0
-    print("Lsmash does not work properly on windows. Please switch to Linux or wait for qencoder 2.0 to properly release for a fix.")
 
 # baseUIClass, baseUIWidget = uic.loadUiType("mainwindow.ui")
 
@@ -1175,20 +1172,34 @@ class EncodeWorker(QtCore.QObject):
         if self.window.killFlag:
             return
         self.window.scenedetectFailState = -1
+        if os.path.isfile(dictargs['output_file']):
+            print("Already completed file: " + str(dictargs['output_file']) + " . Please delete this file first")
+            self.encodeFinished.emit(str(index), 0)
+            return
         av1an = get_av1an(get_av1an_proj(merge_args(dictargs)))
         proj = av1an.projects[0]
         state = [0, 0, 0]
         t = threading.Thread(target=run_av1an, args=[av1an])
         t.start()
+        initFrames = 0
         while t.is_alive():
             if state[2] == 0:
                 state[2] = proj.frames
                 if state[2] != 0:
                     state[0] = 1
                     self.startEncode.emit(str(index), state[2], 0)
-            if proj.counter is not None:
+            if proj.counter is not None and state[0] == 1:
                 prev = state[1]
-                state[1] = proj.counter.get_frames()
+                initFrames = done_count(dictargs['temp'], dictargs['resume'])
+                state[1] = proj.counter.get_frames() + initFrames
+                state[2] = proj.frames
+                if prev != state[1]:
+                    self.newFrames.emit(str(index), state[1] - prev)
+                state[0] = 2
+            if state[0] == 2:
+                prev = state[1]
+                state[1] = proj.counter.get_frames() + initFrames
+                state[2] = proj.frames
                 if prev != state[1]:
                     self.newFrames.emit(str(index), state[1] - prev)
             sleep(0.5)

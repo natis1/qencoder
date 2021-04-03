@@ -1,7 +1,7 @@
 from av1an.manager import Manager
 from av1an.project import Project
 from av1an.startup.setup import startup_check
-
+import json
 
 def get_default_args():
     return {'input': None, 'temp': None, 'output_file': None, 'mkvmerge': False, 'logging': None,
@@ -33,3 +33,13 @@ def merge_args(dictargs):
         args1[key] = dictargs[key]
     print(args1)
     return args1
+
+
+def done_count(temp, resume):
+    done_path = temp / 'done.json'
+    if resume and done_path.exists():
+        with open(done_path) as done_file:
+            data = json.load(done_file)
+        return sum(data['done'].values())
+    else:
+        return 0
